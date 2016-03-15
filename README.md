@@ -13,3 +13,5 @@ The hardware consist of 4 boards
 - a board holding a GPS module
 - a board for connections to other electronic equipements (VHF, sensors, ...)
   via a single flat cable.
+
+for more details see the wiki: https://github.com/mbouyer/marine_chartplotter/wiki
