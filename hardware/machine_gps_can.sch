@@ -1,0 +1,287 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:regul-local
+LIBS:microchip_pic18mcu
+LIBS:microchip-local
+LIBS:A20_OLIMEXINO_LIME2_SHIELD
+LIBS:audio-local
+LIBS:max-local
+LIBS:logic-local
+LIBS:adafruit
+LIBS:marine_gps-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 5 5
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L MCP2562 U501
+U 1 1 56C61ED7
+P 4400 2600
+F 0 "U501" H 4000 3050 50  0000 L BNN
+F 1 "MCP2562" H 4000 2100 50  0000 L BNN
+F 2 "Housings_DIP:DIP-8_W7.62mm" H 4400 2750 50  0001 C CNN
+F 3 "" H 4400 2600 60  0000 C CNN
+F 4 "MCP2562-E/P" H 5150 2450 60  0001 C CNN "P/N"
+	1    4400 2600
+	1    0    0    -1  
+$EndComp
+$Comp
+L C_Small C501
+U 1 1 56C61ED8
+P 2600 2600
+F 0 "C501" H 2610 2670 50  0000 L CNN
+F 1 "1µF6.3V" H 2610 2520 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805" H 2600 2600 50  0001 C CNN
+F 3 "" H 2600 2600 50  0000 C CNN
+F 4 "C2012X5R1E105K085AC" H 5150 2450 60  0001 C CNN "P/N"
+	1    2600 2600
+	1    0    0    -1  
+$EndComp
+$Comp
+L C_Small C502
+U 1 1 56C61ED9
+P 2850 2800
+F 0 "C502" H 2860 2870 50  0000 L CNN
+F 1 "1µF6.3V" H 2860 2720 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805" H 2850 2800 50  0001 C CNN
+F 3 "" H 2850 2800 50  0000 C CNN
+F 4 "C2012X5R1E105K085AC" H 5150 2450 60  0001 C CNN "P/N"
+	1    2850 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L Q_PMOS_GDS Q503
+U 1 1 56C61EDA
+P 5150 1850
+F 0 "Q503" H 5450 1900 50  0000 R CNN
+F 1 "DMG2307L" H 5750 1800 50  0000 R CNN
+F 2 "TO_SOT_Packages_SMD:SOT-23" H 5350 1950 50  0001 C CNN
+F 3 "" H 5150 1850 50  0000 C CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    5150 1850
+	0    1    -1   0   
+$EndComp
+$Comp
+L CONN_01X02 P501
+U 1 1 56C61EDB
+P 5550 1550
+F 0 "P501" H 5550 1700 50  0000 C CNN
+F 1 "CONN_01X02" V 5650 1550 50  0000 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_1x02" H 5550 1550 50  0001 C CNN
+F 3 "" H 5550 1550 50  0000 C CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    5550 1550
+	0    -1   -1   0   
+$EndComp
+$Comp
+L R_Small R502
+U 1 1 56C61EDC
+P 4850 1900
+F 0 "R502" H 4880 1920 50  0000 L CNN
+F 1 "47K" H 4880 1860 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" H 4850 1900 50  0001 C CNN
+F 3 "" H 4850 1900 50  0000 C CNN
+F 4 "MF25 47K" H 5150 2450 60  0001 C CNN "P/N"
+	1    4850 1900
+	1    0    0    -1  
+$EndComp
+$Comp
+L BSS138 Q501
+U 1 1 56C61EDD
+P 3700 3600
+F 0 "Q501" H 3900 3675 50  0000 L CNN
+F 1 "BSS138" H 3900 3600 50  0000 L CNN
+F 2 "TO_SOT_Packages_SMD:SOT-23" H 3900 3525 50  0001 L CIN
+F 3 "" H 3700 3600 50  0000 L CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    3700 3600
+	1    0    0    -1  
+$EndComp
+$Comp
+L BSS138 Q502
+U 1 1 56C61EDE
+P 5050 3600
+F 0 "Q502" H 5250 3675 50  0000 L CNN
+F 1 "BSS138" H 5250 3600 50  0000 L CNN
+F 2 "TO_SOT_Packages_SMD:SOT-23" H 5250 3525 50  0001 L CIN
+F 3 "" H 5050 3600 50  0000 L CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    5050 3600
+	1    0    0    -1  
+$EndComp
+$Comp
+L R_Small R501
+U 1 1 56C61EDF
+P 3650 3900
+F 0 "R501" H 3680 3920 50  0000 L CNN
+F 1 "47K" H 3680 3860 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM15mm" H 3650 3900 50  0001 C CNN
+F 3 "" H 3650 3900 50  0000 C CNN
+F 4 "MF25 47K" H 5150 2450 60  0001 C CNN "P/N"
+	1    3650 3900
+	1    0    0    -1  
+$EndComp
+Text HLabel 2350 2300 0    60   Input ~ 0
+CAN_RX
+Text HLabel 2350 2100 0    60   Input ~ 0
+CAN_TX
+Text HLabel 2350 2900 0    60   Input ~ 0
++3.3V_CPU
+Text HLabel 2350 2500 0    60   Input ~ 0
++5V_CPU
+Text HLabel 2350 2700 0    60   Input ~ 0
+GNDD
+Text Label 5650 2100 0    60   ~ 0
++12Vbus
+Text Label 5650 2200 0    60   ~ 0
+GND
+Text Label 5650 2300 0    60   ~ 0
+CANL
+Text Label 5650 2400 0    60   ~ 0
+CANH
+Text HLabel 2350 1900 0    60   Input ~ 0
+GND
+Text HLabel 2350 1750 0    60   Input ~ 0
++12V
+Text HLabel 2350 3100 0    60   Input ~ 0
+CAN_EN
+Text Label 2600 1900 0    60   ~ 0
+GND
+Wire Wire Line
+	2350 2500 3150 2500
+Wire Wire Line
+	2350 2900 2850 2900
+Wire Wire Line
+	3150 2500 3150 1900
+Wire Wire Line
+	3150 1900 4400 1900
+Wire Wire Line
+	4400 1900 4400 2000
+Wire Wire Line
+	3350 2700 3350 3200
+Wire Wire Line
+	3350 3200 4400 3200
+Wire Wire Line
+	2850 2900 2850 3300
+Wire Wire Line
+	2850 3300 4900 3300
+Wire Wire Line
+	4900 3300 4900 2900
+Wire Wire Line
+	2350 2700 3350 2700
+Wire Wire Line
+	2350 2100 3500 2100
+Wire Wire Line
+	3500 2100 3500 2400
+Wire Wire Line
+	3500 2400 3800 2400
+Wire Wire Line
+	3800 2600 3350 2600
+Wire Wire Line
+	3350 2600 3350 2300
+Wire Wire Line
+	3350 2300 2350 2300
+Wire Wire Line
+	4900 2600 5400 2600
+Wire Wire Line
+	5400 2600 5400 2300
+Wire Wire Line
+	2350 1750 4950 1750
+Wire Wire Line
+	5350 1750 5500 1750
+Wire Wire Line
+	5600 1750 5600 2100
+Wire Wire Line
+	2600 1900 2350 1900
+Wire Wire Line
+	4850 1800 4850 1750
+Wire Wire Line
+	4850 2000 4850 2050
+Wire Wire Line
+	4850 2050 5150 2050
+Wire Wire Line
+	5150 2050 5150 3400
+Wire Wire Line
+	3650 3800 5150 3800
+Wire Wire Line
+	4350 3200 4350 3800
+Wire Wire Line
+	4850 4050 4850 3650
+Wire Wire Line
+	3500 4050 4850 4050
+Wire Wire Line
+	3500 3650 3500 4050
+Wire Wire Line
+	2450 3650 3500 3650
+Wire Wire Line
+	2350 3100 2450 3100
+Wire Wire Line
+	2450 3100 2450 3650
+Wire Wire Line
+	3800 3400 3800 2800
+Wire Wire Line
+	3650 4000 3650 4050
+Wire Wire Line
+	4900 2400 6300 2400
+Wire Wire Line
+	5400 2300 6300 2300
+Wire Wire Line
+	5650 2200 6300 2200
+Wire Wire Line
+	5600 2100 6300 2100
+Connection ~ 2600 2500
+Connection ~ 2600 2700
+Connection ~ 2850 2700
+Connection ~ 2850 2900
+Connection ~ 4850 1750
+Connection ~ 3800 3800
+Connection ~ 4350 3800
+Connection ~ 4350 3200
+Connection ~ 3650 4050
+Text HLabel 6300 2100 2    60   Output ~ 0
+CAN_+12V
+Text HLabel 6300 2200 2    60   Output ~ 0
+CAN_GND
+Text HLabel 6300 2300 2    60   Output ~ 0
+CANL
+Text HLabel 6300 2400 2    60   Output ~ 0
+CANH
+$EndSCHEMATC

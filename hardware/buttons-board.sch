@@ -1,0 +1,303 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:switches-local
+LIBS:buttons-board-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L 5G+LED SW1
+U 1 1 56DDA3F2
+P 3150 3000
+F 0 "SW1" H 3300 3110 50  0000 C CNN
+F 1 "5G+LED" H 3150 2800 50  0000 C CNN
+F 2 "local:5G-1US" H 3150 3000 60  0001 C CNN
+F 3 "" H 3150 3000 60  0000 C CNN
+	1    3150 3000
+	0    1    1    0   
+$EndComp
+$Comp
+L 5G SW2
+U 1 1 56DDA3F3
+P 4350 3000
+F 0 "SW2" H 4500 3110 50  0000 C CNN
+F 1 "5G" H 4350 2920 50  0000 C CNN
+F 2 "local:5G-1US" H 4350 3000 60  0001 C CNN
+F 3 "" H 4350 3000 60  0000 C CNN
+	1    4350 3000
+	0    1    1    0   
+$EndComp
+$Comp
+L 5G SW3
+U 1 1 56DDA3F4
+P 5300 3000
+F 0 "SW3" H 5450 3110 50  0000 C CNN
+F 1 "5G" H 5300 2920 50  0000 C CNN
+F 2 "local:5G-1US" H 5300 3000 60  0001 C CNN
+F 3 "" H 5300 3000 60  0000 C CNN
+	1    5300 3000
+	0    1    1    0   
+$EndComp
+$Comp
+L 5G SW4
+U 1 1 56DDA3F5
+P 6250 3000
+F 0 "SW4" H 6400 3110 50  0000 C CNN
+F 1 "5G" H 6250 2920 50  0000 C CNN
+F 2 "local:5G-1US" H 6250 3000 60  0001 C CNN
+F 3 "" H 6250 3000 60  0000 C CNN
+	1    6250 3000
+	0    1    1    0   
+$EndComp
+$Comp
+L 5G SW5
+U 1 1 56DDA3F6
+P 7150 3000
+F 0 "SW5" H 7300 3110 50  0000 C CNN
+F 1 "5G" H 7150 2920 50  0000 C CNN
+F 2 "local:5G-1US" H 7150 3000 60  0001 C CNN
+F 3 "" H 7150 3000 60  0000 C CNN
+	1    7150 3000
+	0    1    1    0   
+$EndComp
+$Comp
+L CONN_01X02 P2
+U 1 1 56DDA3F7
+P 3550 3000
+F 0 "P2" H 3550 3150 50  0000 C CNN
+F 1 "CONN_01X02" V 3650 3000 50  0001 C CNN
+F 2 "local:solder_2x5mm" H 3550 3000 50  0001 C CNN
+F 3 "" H 3550 3000 50  0000 C CNN
+	1    3550 3000
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_01X02 P1
+U 1 1 56DDA3F8
+P 2350 3300
+F 0 "P1" H 2350 3450 50  0000 C CNN
+F 1 "CONN_01X02" V 2450 3300 50  0001 C CNN
+F 2 "local:solder_2x5mm" H 2350 3300 50  0001 C CNN
+F 3 "" H 2350 3300 50  0000 C CNN
+	1    2350 3300
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X02 P4
+U 1 1 56DDA3F9
+P 7950 2900
+F 0 "P4" H 7950 3050 50  0000 C CNN
+F 1 "CONN_01X02" V 8050 2900 50  0001 C CNN
+F 2 "local:solder_2x5mm" H 7950 2900 50  0001 C CNN
+F 3 "" H 7950 2900 50  0000 C CNN
+	1    7950 2900
+	1    0    0    -1  
+$EndComp
+$Comp
+L R_Small R1
+U 1 1 56DDA3FA
+P 2750 3350
+F 0 "R1" V 2850 3300 50  0000 L CNN
+F 1 "330" V 2650 3300 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" H 2750 3350 50  0001 C CNN
+F 3 "" H 2750 3350 50  0000 C CNN
+	1    2750 3350
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	2550 3350 2650 3350
+Wire Wire Line
+	2850 3350 3050 3350
+Wire Wire Line
+	3050 3350 3050 3300
+Wire Wire Line
+	3050 2700 2850 2700
+Wire Wire Line
+	2850 2700 2850 3250
+Wire Wire Line
+	2850 3250 2550 3250
+Wire Wire Line
+	3150 2700 3350 2700
+Wire Wire Line
+	3350 3300 3150 3300
+$Comp
+L R_Small R5
+U 1 1 56DDA3FB
+P 7450 2600
+F 0 "R5" V 7350 2550 50  0000 L CNN
+F 1 "6.8K" V 7550 2500 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" H 7450 2600 50  0001 C CNN
+F 3 "" H 7450 2600 50  0000 C CNN
+	1    7450 2600
+	0    1    1    0   
+$EndComp
+$Comp
+L R_Small R4
+U 1 1 56DDA3FC
+P 6700 2600
+F 0 "R4" V 6600 2550 50  0000 L CNN
+F 1 "8.2K" V 6800 2500 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" H 6700 2600 50  0001 C CNN
+F 3 "" H 6700 2600 50  0000 C CNN
+	1    6700 2600
+	0    1    1    0   
+$EndComp
+$Comp
+L R_Small R3
+U 1 1 56DDA3FD
+P 5800 2600
+F 0 "R3" V 5700 2550 50  0000 L CNN
+F 1 "10K" V 5900 2500 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" H 5800 2600 50  0001 C CNN
+F 3 "" H 5800 2600 50  0000 C CNN
+	1    5800 2600
+	0    1    1    0   
+$EndComp
+$Comp
+L R_Small R2
+U 1 1 56DDA3FE
+P 4800 2600
+F 0 "R2" V 4700 2550 50  0000 L CNN
+F 1 "11K" V 4900 2500 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" H 4800 2600 50  0001 C CNN
+F 3 "" H 4800 2600 50  0000 C CNN
+	1    4800 2600
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	3350 2700 3350 2950
+Wire Wire Line
+	3350 3050 3350 3300
+$Comp
+L CONN_01X02 P3
+U 1 1 56DDA3FF
+P 3900 3000
+F 0 "P3" H 3900 3150 50  0000 C CNN
+F 1 "CONN_01X02" V 4000 3000 50  0001 C CNN
+F 2 "local:solder_2x5mm" H 3900 3000 50  0001 C CNN
+F 3 "" H 3900 3000 50  0000 C CNN
+	1    3900 3000
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	7750 2600 7750 2850
+Wire Wire Line
+	7750 2600 7550 2600
+Wire Wire Line
+	7350 2600 6800 2600
+Wire Wire Line
+	6600 2600 5900 2600
+Wire Wire Line
+	5700 2600 4900 2600
+Wire Wire Line
+	4700 2600 4100 2600
+Wire Wire Line
+	4100 2600 4100 2950
+Wire Wire Line
+	7750 2950 7750 3400
+Wire Wire Line
+	7750 3400 4100 3400
+Wire Wire Line
+	4100 3400 4100 3050
+Wire Wire Line
+	7150 2700 7150 2600
+Connection ~ 7150 2600
+Wire Wire Line
+	6250 2700 6250 2600
+Connection ~ 6250 2600
+Wire Wire Line
+	5300 2700 5300 2600
+Connection ~ 5300 2600
+Wire Wire Line
+	4350 2700 4350 2600
+Connection ~ 4350 2600
+Wire Wire Line
+	7150 3300 7150 3400
+Connection ~ 7150 3400
+Wire Wire Line
+	6250 3300 6250 3400
+Connection ~ 6250 3400
+Wire Wire Line
+	5300 3300 5300 3400
+Connection ~ 5300 3400
+Wire Wire Line
+	4350 3300 4350 3400
+Connection ~ 4350 3400
+$Comp
+L GND #PWR01
+U 1 1 00000000
+P 6700 3500
+F 0 "#PWR01" H 6700 3250 50  0001 C CNN
+F 1 "GND" H 6700 3350 50  0000 C CNN
+F 2 "" H 6700 3500 50  0000 C CNN
+F 3 "" H 6700 3500 50  0000 C CNN
+	1    6700 3500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6700 3500 6700 3400
+Connection ~ 6700 3400
+Wire Wire Line
+	7050 3300 7050 3400
+Connection ~ 7050 3400
+Wire Wire Line
+	6150 3300 6150 3400
+Connection ~ 6150 3400
+Wire Wire Line
+	5200 3300 5200 3400
+Connection ~ 5200 3400
+Wire Wire Line
+	4250 3300 4250 3400
+Connection ~ 4250 3400
+Wire Wire Line
+	4250 2700 4250 2600
+Connection ~ 4250 2600
+Wire Wire Line
+	5200 2700 5200 2600
+Connection ~ 5200 2600
+Wire Wire Line
+	6150 2700 6150 2600
+Connection ~ 6150 2600
+Wire Wire Line
+	7050 2700 7050 2600
+Connection ~ 7050 2600
+$EndSCHEMATC

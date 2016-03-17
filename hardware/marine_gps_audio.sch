@@ -1,0 +1,378 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:regul-local
+LIBS:microchip_pic18mcu
+LIBS:microchip-local
+LIBS:A20_OLIMEXINO_LIME2_SHIELD
+LIBS:audio-local
+LIBS:max-local
+LIBS:logic-local
+LIBS:adafruit
+LIBS:marine_gps-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 2 5
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L GND #PWR011
+U 1 1 56C61EF9
+P 4100 3150
+F 0 "#PWR011" H 4100 2900 50  0001 C CNN
+F 1 "GND" H 4100 3000 50  0000 C CNN
+F 2 "" H 4100 3150 50  0000 C CNN
+F 3 "" H 4100 3150 50  0000 C CNN
+	1    4100 3150
+	0    1    1    0   
+$EndComp
+$Comp
+L R_Small R206
+U 1 1 56C61EFA
+P 4350 2700
+F 0 "R206" V 4300 2700 50  0000 L CNN
+F 1 "22K" V 4450 2650 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" H 4350 2700 50  0001 C CNN
+F 3 "" H 4350 2700 50  0000 C CNN
+F 4 "SFR2500002202FR500" H 5150 2450 60  0001 C CNN "P/N"
+	1    4350 2700
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X02 P201
+U 1 1 56C61EFB
+P 6100 3650
+F 0 "P201" H 6100 3800 50  0000 C CNN
+F 1 "CONN_01X02" V 6200 3650 50  0000 C CNN
+F 2 "Pin_Headers:Pin_Header_Straight_1x02" H 6100 3650 50  0001 C CNN
+F 3 "" H 6100 3650 50  0000 C CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    6100 3650
+	1    0    0    -1  
+$EndComp
+$Comp
+L POT RV201
+U 1 1 56C61EFC
+P 4400 4000
+F 0 "RV201" H 4400 3900 50  0000 C CNN
+F 1 "100K" H 4400 4000 50  0000 C CNN
+F 2 "local:CB10LV" H 4400 4000 50  0001 C CNN
+F 3 "" H 4400 4000 50  0000 C CNN
+F 4 "CB10LV104M" H 4400 4000 60  0001 C CNN "P/N"
+	1    4400 4000
+	1    0    0    1   
+$EndComp
+$Comp
+L R_Small R201
+U 1 1 56C61EFD
+P 3300 3850
+F 0 "R201" V 3400 3850 50  0000 L CNN
+F 1 "330" V 3200 3800 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM15mm" H 3300 3850 50  0001 C CNN
+F 3 "" H 3300 3850 50  0000 C CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    3300 3850
+	0    -1   1    0   
+$EndComp
+$Comp
+L R_Small R202
+U 1 1 56C61EF4
+P 3300 4150
+F 0 "R202" V 3400 4150 50  0000 L CNN
+F 1 "330" V 3200 4100 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM15mm" H 3300 4150 50  0001 C CNN
+F 3 "" H 3300 4150 50  0000 C CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    3300 4150
+	0    -1   1    0   
+$EndComp
+$Comp
+L TDA8541 U201
+U 1 1 56C61EFF
+P 5200 3650
+F 0 "U201" H 5300 3350 60  0000 C CNN
+F 1 "TDA8541" H 5400 3900 60  0000 C CNN
+F 2 "SMD_Packages:SOIC-8-N" H 5200 3650 60  0001 C CNN
+F 3 "" H 5200 3650 60  0000 C CNN
+F 4 "TDA8541T/N1" H 5200 3650 60  0001 C CNN "P/N"
+	1    5200 3650
+	1    0    0    -1  
+$EndComp
+$Comp
+L GND #PWR012
+U 1 1 56C61F00
+P 5200 4100
+F 0 "#PWR012" H 5200 3850 50  0001 C CNN
+F 1 "GND" H 5200 3950 50  0000 C CNN
+F 2 "" H 5200 4100 50  0000 C CNN
+F 3 "" H 5200 4100 50  0000 C CNN
+	1    5200 4100
+	1    0    0    -1  
+$EndComp
+$Comp
+L R_Small R208
+U 1 1 56C61F01
+P 5500 4000
+F 0 "R208" V 5600 4000 50  0000 L CNN
+F 1 "22K" V 5400 3950 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM15mm" H 5500 4000 50  0001 C CNN
+F 3 "" H 5500 4000 50  0000 C CNN
+F 4 "SFR2500002202FR500" H 5150 2450 60  0001 C CNN "P/N"
+	1    5500 4000
+	0    1    1    0   
+$EndComp
+$Comp
+L R_Small R204
+U 1 1 56C61F02
+P 4000 4000
+F 0 "R204" V 4100 4000 50  0000 L CNN
+F 1 "10K" V 3900 3950 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM15mm" H 4000 4000 50  0001 C CNN
+F 3 "" H 4000 4000 50  0000 C CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    4000 4000
+	0    1    1    0   
+$EndComp
+$Comp
+L C_Small C201
+U 1 1 56C61F03
+P 3700 4000
+F 0 "C201" V 3800 3950 50  0000 L CNN
+F 1 "1µF25V" V 3600 3850 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805" H 3700 4000 50  0001 C CNN
+F 3 "" H 3700 4000 50  0000 C CNN
+F 4 "C2012X5R1E105K085AC" H 5150 2450 60  0001 C CNN "P/N"
+	1    3700 4000
+	0    -1   1    0   
+$EndComp
+$Comp
+L R_Small R203
+U 1 1 56C61F04
+P 3700 3600
+F 0 "R203" V 3800 3600 50  0000 L CNN
+F 1 "330" V 3600 3550 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM15mm" H 3700 3600 50  0001 C CNN
+F 3 "" H 3700 3600 50  0000 C CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    3700 3600
+	0    -1   1    0   
+$EndComp
+$Comp
+L C_Small C202
+U 1 1 56C61F05
+P 4000 3600
+F 0 "C202" V 4100 3550 50  0000 L CNN
+F 1 "1µF25V" V 3900 3450 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805" H 4000 3600 50  0001 C CNN
+F 3 "" H 4000 3600 50  0000 C CNN
+F 4 "C2012X5R1E105K085AC" H 5150 2450 60  0001 C CNN "P/N"
+	1    4000 3600
+	0    -1   1    0   
+$EndComp
+$Comp
+L C_Small C204
+U 1 1 56C61F06
+P 5300 3150
+F 0 "C204" V 5200 3150 50  0000 L CNN
+F 1 "100nF" V 5400 3100 50  0000 L CNN
+F 2 "Capacitors_SMD:C_0805" H 5300 3150 50  0001 C CNN
+F 3 "" H 5300 3150 50  0000 C CNN
+F 4 "C2012X5R1H104KT" H 5150 2450 60  0001 C CNN "P/N"
+	1    5300 3150
+	0    1    1    0   
+$EndComp
+$Comp
+L CP_Small C203
+U 1 1 56C61F2F
+P 5300 2850
+F 0 "C203" V 5400 2800 50  0000 L CNN
+F 1 "100µF25V" V 5200 2550 50  0000 L CNN
+F 2 "Capacitors_ThroughHole:C_Radial_D6.3_L11.2_P2.5" H 5300 2850 50  0001 C CNN
+F 3 "" H 5300 2850 50  0000 C CNN
+F 4 "SEK101M025AT" H 5150 2450 60  0001 C CNN "P/N"
+	1    5300 2850
+	0    -1   -1   0   
+$EndComp
+$Comp
+L GND #PWR013
+U 1 1 56C61F24
+P 5500 3150
+F 0 "#PWR013" H 5500 2900 50  0001 C CNN
+F 1 "GND" H 5500 3000 50  0000 C CNN
+F 2 "" H 5500 3150 50  0000 C CNN
+F 3 "" H 5500 3150 50  0000 C CNN
+	1    5500 3150
+	0    -1   -1   0   
+$EndComp
+$Comp
+L R_Small R207
+U 1 1 56C61F30
+P 5000 3150
+F 0 "R207" V 5100 3150 50  0000 L CNN
+F 1 "22K" V 4900 3100 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM15mm" H 5000 3150 50  0001 C CNN
+F 3 "" H 5000 3150 50  0000 C CNN
+F 4 "SFR2500002202FR500" H 5150 2450 60  0001 C CNN "P/N"
+	1    5000 3150
+	0    1    1    0   
+$EndComp
+$Comp
+L BC547 Q201
+U 1 1 56C61F31
+P 4350 3050
+F 0 "Q201" H 4550 3125 50  0000 L CNN
+F 1 "BC547" H 4550 3050 50  0000 L CNN
+F 2 "TO_SOT_Packages_THT:TO-92_Molded_Narrow" H 4550 2975 50  0001 L CIN
+F 3 "" H 4350 3050 50  0000 L CNN
+F 4 "" H 5150 2450 60  0001 C CNN "P/N"
+	1    4350 3050
+	0    1    1    0   
+$EndComp
+$Comp
+L R_Small R205
+U 1 1 56C61F32
+P 4150 2500
+F 0 "R205" V 4100 2500 50  0000 L CNN
+F 1 "100K" V 4250 2450 50  0000 L CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM10mm" H 4150 2500 50  0001 C CNN
+F 3 "" H 4150 2500 50  0000 C CNN
+F 4 "CCF50100KFKR36" H 5150 2450 60  0001 C CNN "P/N"
+	1    4150 2500
+	0    -1   -1   0   
+$EndComp
+$Comp
+L GND #PWR014
+U 1 1 56C61F33
+P 3950 2500
+F 0 "#PWR014" H 3950 2250 50  0001 C CNN
+F 1 "GND" H 3950 2350 50  0000 C CNN
+F 2 "" H 3950 2500 50  0000 C CNN
+F 3 "" H 3950 2500 50  0000 C CNN
+	1    3950 2500
+	0    1    1    0   
+$EndComp
+Text HLabel 5200 2700 1    60   Input ~ 0
++12V
+Text HLabel 4350 2350 1    60   Input ~ 0
+AUDIO_EN
+Text HLabel 3100 3850 0    60   Input ~ 0
+AUDIO_L
+Text HLabel 3100 4150 0    60   Input ~ 0
+AUDIO_R
+Text HLabel 3500 3600 0    60   Input ~ 0
+AUDIO_COM
+Wire Wire Line
+	3400 3850 3500 3850
+Wire Wire Line
+	3500 3850 3500 4150
+Wire Wire Line
+	3500 4150 3400 4150
+Wire Wire Line
+	3200 3850 3100 3850
+Wire Wire Line
+	3100 4150 3200 4150
+Wire Wire Line
+	5900 3600 5700 3600
+Wire Wire Line
+	5700 3700 5900 3700
+Wire Wire Line
+	4600 3700 4700 3700
+Wire Wire Line
+	4600 3700 4600 3600
+Wire Wire Line
+	4100 3600 4700 3600
+Wire Wire Line
+	5200 4050 5200 4100
+Wire Wire Line
+	5600 4000 5800 4000
+Wire Wire Line
+	5800 4000 5800 3700
+Wire Wire Line
+	4650 4000 5400 4000
+Wire Wire Line
+	4700 4000 4700 3800
+Wire Wire Line
+	4400 4150 4150 4150
+Wire Wire Line
+	4150 4150 4150 4000
+Wire Wire Line
+	4150 4000 4100 4000
+Wire Wire Line
+	3600 4000 3500 4000
+Wire Wire Line
+	3800 4000 3900 4000
+Wire Wire Line
+	3800 3600 3900 3600
+Wire Wire Line
+	3600 3600 3500 3600
+Wire Wire Line
+	5200 2700 5200 3250
+Wire Wire Line
+	5400 3150 5500 3150
+Wire Wire Line
+	5400 2850 5450 2850
+Wire Wire Line
+	5450 2850 5450 3150
+Wire Wire Line
+	5200 3150 5100 3150
+Wire Wire Line
+	4700 3500 4700 3150
+Wire Wire Line
+	4550 3150 4900 3150
+Wire Wire Line
+	4150 3150 4100 3150
+Wire Wire Line
+	4350 2850 4350 2800
+Wire Wire Line
+	4350 2600 4350 2350
+Wire Wire Line
+	3950 2500 4050 2500
+Wire Wire Line
+	4250 2500 4350 2500
+Connection ~ 5800 3700
+Connection ~ 3500 4000
+Connection ~ 4700 4000
+Connection ~ 4600 3600
+Connection ~ 5200 2850
+Connection ~ 5200 3150
+Connection ~ 5450 3150
+Connection ~ 4150 4000
+Connection ~ 4700 3150
+Connection ~ 4350 2500
+$EndSCHEMATC
