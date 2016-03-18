@@ -13,6 +13,13 @@
   )
 
   (page A4)
+  (title_block
+    (title "GPS module")
+    (date 2016-03-18)
+    (rev 1.0)
+    (company "Manuel Bouyer")
+  )
+
   (layers
     (0 F.Cu signal)
     (31 B.Cu signal)
@@ -66,7 +73,7 @@
     (pad_drill 0.762)
     (pad_to_mask_clearance 0.2)
     (aux_axis_origin 0 0)
-    (visible_elements FFFFFF7F)
+    (visible_elements 7FFFFFFF)
     (pcbplotparams
       (layerselection 0x00010_80000000)
       (usegerberextensions false)

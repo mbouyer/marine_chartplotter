@@ -13,6 +13,13 @@
   )
 
   (page A4)
+  (title_block
+    (title "Connect board")
+    (date 2016-03-18)
+    (rev 1.0)
+    (company "Manuel Bouyer")
+  )
+
   (layers
     (0 F.Cu signal)
     (31 B.Cu signal)
@@ -68,7 +75,7 @@
     (pad_to_mask_clearance 0.2)
     (aux_axis_origin 101.6 92.71)
     (grid_origin 101.6 92.71)
-    (visible_elements FFFFFF7F)
+    (visible_elements 7FFFFFFF)
     (pcbplotparams
       (layerselection 0x00030_80000001)
       (usegerberextensions false)

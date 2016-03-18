@@ -13,6 +13,13 @@
   )
 
   (page A4)
+  (title_block
+    (title "Buttons board")
+    (date 2016-03-18)
+    (rev 1.0)
+    (company "Manuel Bouyer")
+  )
+
   (layers
     (0 F.Cu signal)
     (31 B.Cu signal)

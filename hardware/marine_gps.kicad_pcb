@@ -13,6 +13,13 @@
   )
 
   (page A4)
+  (title_block
+    (title "marine GPS")
+    (date 2016-03-18)
+    (rev 1.0)
+    (company "Manuel Bouyer")
+  )
+
   (layers
     (0 F.Cu signal)
     (31 B.Cu signal)
@@ -37,7 +44,7 @@
   )
 
   (setup
-    (last_trace_width 0.8)
+    (last_trace_width 0.5)
     (user_trace_width 0.6)
     (user_trace_width 0.7)
     (user_trace_width 0.8)
