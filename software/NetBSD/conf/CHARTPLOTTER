@@ -1,0 +1,13 @@
+#	$NetBSD: OLIMEXLIME2,v 1.1 2015/06/03 10:01:56 jmcneill Exp $
+#
+#	CHARTPLOTTER - https://github.com/mbouyer/marine_chartplotter
+#
+
+include "arch/evbarm/conf/OLIMEXLIME2"
+no awinrtc*	at awinio?
+awiniic1	at awinio? port 1
+dsrtc* at iic1 addr 0x68 flags 1672
+picbmc* at iic1 addr 0x69
+
+com3		at awinio? port 3 flags 1	# UART3 (GPS)
+com4		at awinio? port 4 flags 1	# UART4 (RS422)
