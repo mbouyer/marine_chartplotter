@@ -58,9 +58,10 @@ LIST   P=PIC18F25K22
 	bmc_command : 1
 	bmc_bklpwm : 1
 	ENDC
-BMC_VERSION	EQU	0x10
+BMC_VERSION	EQU	0x11
 BMC_STATUS_PWSW	EQU	0
 BMC_STATUS_BKLON EQU	1
+BMC_STATUS_INTR EQU	2
 
 BMC_CMD_PWROFF	EQU	0
 
@@ -538,6 +539,7 @@ key_did_change
 	movlw	4
 	movwf	pwofftmr ; start power off timer
 	bsf	bmc_status, BMC_STATUS_PWSW
+	bsf	bmc_status, BMC_STATUS_INTR
 	bsf	LATC, C_A20_INT
 	return
 keyd_doon:
@@ -581,6 +583,8 @@ keyup:
 	; key released
 	clrf	pwofftmr ; key released, don't force power off
 	bcf	status, STATUS_PWRKEY
+	bsf	bmc_status, BMC_STATUS_INTR
+	bsf	LATC, C_A20_INT
 	movlw 'u'
 	call dotx
 	movlw ' '
@@ -610,6 +614,7 @@ a20_off:
 	rcall	do_pwm_off
 	bcf	LATC, C_A20_EN
 	bcf	LATC, C_A20_INT
+	bsf	bmc_status, BMC_STATUS_INTR
 	bcf	status, STATUS_PWRON
 	; disable i2c
 	bcf	PIE1, SSP1IE
