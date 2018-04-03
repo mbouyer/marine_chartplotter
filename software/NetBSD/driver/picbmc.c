@@ -27,6 +27,8 @@
   * POSSIBILITY OF SUCH DAMAGE.
   */
 
+#include "opt_fdt.h"
+
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD: $");
 
@@ -46,6 +48,10 @@ __KERNEL_RCSID(0, "$NetBSD: $");
 #include <dev/sysmon/sysmonvar.h>
 #include <dev/sysmon/sysmon_taskq.h>
 
+#ifdef FDT
+#include <dev/fdt/fdtvar.h>
+#endif
+
 #if __arm__ /* XXX */
 #include <arm/arm32/machdep.h>
 static void picbmc_powerdown(void);
@@ -57,6 +63,7 @@ static struct picbmc_softc *powerdown_softc;
 #define PICBMC_REG_STAT		0x01
 #define PICBMC_REG_STAT_SW		(1 << 0)
 #define PICBMC_REG_STAT_BLKON		(1 << 1)
+#define PICBMC_REG_STAT_INTR		(1 << 2)
 #define PICBMC_REG_TEMPL	0x02
 #define PICBMC_REG_TEMPH	0x03
 #define PICBMC_REG_BATL		0x04
@@ -69,6 +76,8 @@ struct picbmc_softc {
 	device_t sc_dev;
 	i2c_tag_t sc_tag;
 	uint8_t	sc_address;
+	int	sc_phandle;
+	int 	sc_bmc_vers;
 	struct	sysmon_envsys *sc_sme;
 	envsys_data_t sc_sensor[2];
 #define BMC_SENSOR_TEMP 0
@@ -97,7 +106,11 @@ static int picbmc_read_iic8(struct picbmc_softc *, uint8_t, uint8_t *);
 static int picbmc_write_iic8(struct picbmc_softc *, uint8_t, uint8_t);
 static int picbmc_read_iic16(struct picbmc_softc *, uint8_t, uint32_t *);
 static void picbmc_refresh(struct sysmon_envsys *, envsys_data_t *);
+#ifdef FDT
+static int picbmc_intr(void *);
+#else
 static void picbmc_intr(void *);
+#endif
 static int picbmc_sysctl_blken(SYSCTLFN_PROTO);
 static int picbmc_sysctl_blkpwm(SYSCTLFN_PROTO);
 
@@ -132,6 +145,7 @@ picbmc_attach(device_t parent, device_t self, void *arg)
 	sc->sc_tag = ia->ia_tag;
 	sc->sc_address = ia->ia_addr;
 	sc->sc_dev = self;
+	sc->sc_phandle = ia->ia_cookie;
 
 #if __arm__ /* XXX */
 	cpu_powerdown_address = picbmc_powerdown;
@@ -143,6 +157,7 @@ picbmc_attach(device_t parent, device_t self, void *arg)
 	} else {
 		aprint_normal(": PIC BMC version 0x%x\n", vers);
 	}
+	sc->sc_bmc_vers = vers;
 
 	sc->sc_sme = sysmon_envsys_create();
 	sc->sc_sme->sme_name = device_xname(self);
@@ -178,7 +193,11 @@ picbmc_attach(device_t parent, device_t self, void *arg)
 		    "error %d registering with sysmon\n", error);
 		goto bad;
 	}
+#ifdef FDT
+	picbmc_config_gpio(self);
+#else
 	config_interrupts(self, picbmc_config_gpio);
+#endif
 
 	sysctl_createv(&sc->sc_log, 0, NULL, &node, 0, 
 	    CTLTYPE_NODE, device_xname(sc->sc_dev),
@@ -212,6 +231,30 @@ static void
 picbmc_config_gpio(device_t self)
 {
 	struct picbmc_softc *sc = device_private(self);
+
+	mutex_init(&sc->sc_lwp_mtx, MUTEX_DEFAULT, IPL_VM);
+	if (sc->sc_bmc_vers < 0x11)
+		return;
+	sc->sc_lwp_ev = false;
+	sc->sc_sw.smpsw_name = device_xname(sc->sc_dev);
+	sc->sc_sw.smpsw_type = PSWITCH_TYPE_POWER;
+	sysmon_pswitch_register(&sc->sc_sw);
+#ifdef FDT
+	char buf[128];
+	void *ih;
+	if (!fdtbus_intr_str(sc->sc_phandle, 0, buf, sizeof(buf))) {
+		aprint_error_dev(sc->sc_dev, "failed to decode interrupt\n");
+		return;
+	}
+	ih = fdtbus_intr_establish(sc->sc_phandle, 0, IPL_VM, 0,
+	    picbmc_intr, sc);
+	if (ih == NULL) {
+		aprint_error_dev(sc->sc_dev,
+		    "couldn't establish interrupt on %s\n", buf);
+		return;
+	}
+	aprint_normal_dev(sc->sc_dev, "interrupting on %s\n", buf);
+#else
 	int caps;
 	int error;
 
@@ -240,8 +283,6 @@ picbmc_config_gpio(device_t self)
 		gpio_pin_unmap(sc->sc_gpio, &sc->sc_gpio_map);
 		return;
 	}
-	mutex_init(&sc->sc_lwp_mtx, MUTEX_DEFAULT, IPL_VM);
-	sc->sc_lwp_ev = false;
 	error = gpio_pin_ctl_intr(sc->sc_gpio, &sc->sc_gpio_map, 0,
 	    GPIO_PIN_EVENTS | GPIO_PIN_LEVEL, IPL_VM, picbmc_intr, sc);
 	if (error != 0) {
@@ -250,10 +291,8 @@ picbmc_config_gpio(device_t self)
 		gpio_pin_unmap(sc->sc_gpio, &sc->sc_gpio_map);
 		return;
 	}
-	sc->sc_sw.smpsw_name = device_xname(sc->sc_dev);
-	sc->sc_sw.smpsw_type = PSWITCH_TYPE_POWER;
-	sysmon_pswitch_register(&sc->sc_sw);
 	gpio_pin_irqen(sc->sc_gpio, &sc->sc_gpio_map, 0, true);
+#endif
 }
 
 static void
@@ -269,27 +308,37 @@ picbmc_intr_task(void *arg)
 	}
 
 	sc->sc_lwp_ev = false;
-	if (picbmc_read_iic8(sc, PICBMC_REG_STAT, &val) == 0) {
-		printf("picbmc_intr_task: error reading BMC\n");
-		goto end;
-	}
-	if (val & PICBMC_REG_STAT_SW) {
-		new_state = 1;
-	} else {
-		new_state = 0;
-	}
-	if (sc->sc_sw_state != new_state) {
-		sc->sc_sw_state = new_state;
-		sysmon_pswitch_event(&sc->sc_sw,
-		    new_state ?
-		    PSWITCH_EVENT_PRESSED : PSWITCH_EVENT_RELEASED);
+	while (true) {
+		if (picbmc_read_iic8(sc, PICBMC_REG_STAT, &val) == 0) {
+			printf("picbmc_intr_task: error reading BMC\n");
+			goto end;
+		}
+		if ((val & PICBMC_REG_STAT_INTR) == 0)
+			break;
+		if (val & PICBMC_REG_STAT_SW) {
+			new_state = 1;
+		} else {
+			new_state = 0;
+		}
+		if (sc->sc_sw_state != new_state) {
+			sc->sc_sw_state = new_state;
+			sysmon_pswitch_event(&sc->sc_sw,
+			    new_state ?
+			    PSWITCH_EVENT_PRESSED : PSWITCH_EVENT_RELEASED);
+		}
 	}
 end:
+#ifndef FDT
 	gpio_pin_irqen(sc->sc_gpio, &sc->sc_gpio_map, 0, true);
+#endif
 	mutex_exit(&sc->sc_lwp_mtx);
 }
 
+#ifdef FDT
+static int
+#else
 static void
+#endif
 picbmc_intr(void *arg)
 {
 	struct picbmc_softc *sc = arg;
@@ -300,6 +349,9 @@ picbmc_intr(void *arg)
 		sysmon_task_queue_sched(0, picbmc_intr_task, sc);
 	}
 	mutex_exit(&sc->sc_lwp_mtx);
+#ifdef FDT
+	return 1;
+#endif
 }
 
 static int
