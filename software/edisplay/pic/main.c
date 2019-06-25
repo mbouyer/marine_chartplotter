@@ -65,8 +65,8 @@ static long ad_i_result;
 unsigned int ad_v_result;
 unsigned int counter=0;
 
-#define ENCODER_A PORTBbits.RB4        // Encoder A Pin
-#define ENCODER_B PORTBbits.RB5        // Encoder B Pin
+#define ENCODER_A PORTBbits.RB4        /* Encoder A Pin */
+#define ENCODER_B PORTBbits.RB5        /* Encoder B Pin */
 
 unsigned char    encoder_A;
 unsigned char    encoder_B;
@@ -82,14 +82,13 @@ Pressed()
 	T2CONbits.TMR2ON = 0;
 
 	if(ad_v_result < 1700 && ad_v_result > 1300)
-		VENDORTxReport("RED BUTTON PRESSED", 19); //turn on the LED if button RED
+		VENDORTxReport("RED BUTTON PRESSED", 19);
 	else if(ad_v_result < 1300 && ad_v_result > 1000)
 		VENDORTxReport("LEFT BLACK BUTTON PRESSED", 25);
 	else if(ad_v_result < 1000 && ad_v_result > 700)
 		VENDORTxReport("RIGHT BLACK BUTTON PRESSED", 26);
 	else if(ad_v_result < 700 && ad_v_result > 400)
 		VENDORTxReport("YELLOW BUTTON PRESSED", 22);
-	//else LATBbits.LATB3 =0;  //otherwise turn off the LED 
 		
 	T2CONbits.TMR2ON = 1;
 	for(rr=0;rr<VENDOR_OUTPUT_REPORT_BYTES;rr++)
@@ -203,14 +202,14 @@ void main(void)
 	INTCONbits.GIE=0;
     	EECON2 = 0x55;
    	EECON2 = 0xAA;
-    	EECON2 = 0x00; // unlock PPS
+    	EECON2 = 0x00; /* unlock PPS */
 
-    	RPOR0= 11;     // map spi clock to PR0 PIN
-   	RPOR1= 10;	// map spi function to PR1 PIN
+    	RPOR0= 11;	/* map spi clock to PR0 PIN */
+   	RPOR1= 10;	/* map spi function to PR1 PIN */
 
    	EECON2 = 0x55;
    	EECON2 = 0xAA;
-   	EECON2 = 0x01; // lock   PPS
+   	EECON2 = 0x01; /* lock PPS */
 
 	INTCONbits.GIE=1;
 
@@ -224,8 +223,8 @@ void main(void)
         TRISAbits.TRISA3 = 0;
 
 	RST = 1;
-	initSPI();    // intilize spi connexion
-        initLCD();    // intilize LCD 
+	initSPI();    /* intilize spi connexion */
+        initLCD();    /* intilize LCD  */
 
 	RCONbits.IPEN=1; /* enable interrupt priority */
 
@@ -265,13 +264,13 @@ void main(void)
 	INTCONbits.PEIE_GIEL=1; /* enable low-priority interrrupts */   
 	TRISBbits.TRISB4 = 1;
 	TRISBbits.TRISB5 = 1;
-	TRISA = 0x04; 		//set all digital I/O to inputs
-	TRISAbits.TRISA2 = 1; //Disable the output driver for pin RA2/AN2 
+	TRISA = 0x04; 		/*set all digital I/O to inputs */
+	TRISAbits.TRISA2 = 1; /*Disable the output driver for pin RA2/AN2  */
 
-	ADCON0bits.VCFG = 0; //Vdd is the +ve reference 
-	ADCON1bits.ADCS = 0b001; //Fosc/8 is the conversion clock
-	ADCON0bits.CHS = 2; //select analog input, AN2 
-	ADCON0bits.ADON = 1; //Turn on the ADC
+	ADCON0bits.VCFG = 0; /*Vdd is the +ve reference  */
+	ADCON1bits.ADCS = 0b001; /*Fosc/8 is the conversion clock */
+	ADCON0bits.CHS = 2; /*select analog input, AN2  */
+	ADCON0bits.ADON = 1; /*Turn on the ADC */
 
 #if 0
 	ADCON0 = 0xc1; /* b11000001 */
@@ -322,33 +321,33 @@ void main(void)
 		}
 		ADRESL=0;
 		ADRESH=0;
-		ADCON0bits.GO = 1; //start the conversion
+		ADCON0bits.GO = 1; /*start the conversion */
 
-		while(ADCON0bits.GO==1){}; //wait for the conversion to end 
-		ad_v_result = (ADRESH*8)+ADRESL; //combine the 10 bits of the conversion
+		while(ADCON0bits.GO==1){}; /*wait for the conversion to end  */
+		ad_v_result = (ADRESH*8)+ADRESL; /*combine the 10 bits of the conversion */
 
-		EnableUSBModule();  // enable usb 
-		// As long as we aren't in test mode (UTEYE), process
-	       // USB transactions.
+		EnableUSBModule();  /* enable usb  */
+		/* As long as we aren't in test mode (UTEYE), process */
+	       /* USB transactions. */
 		if(UCFGbits.UTEYE != 1)
 			ProcessUSBTransactions();
-		// Application specific tasks     
+		/* Application specific tasks      */
 
 		if ((deviceState >= CONFIGURED) && (UCONbits.SUSPND==0))
 		{
-			if(counter>2200){  // buttons rebond 
-				Pressed(); // detect which button has been pressed 
+			if(counter>2200){  /* buttons rebond  */
+				Pressed(); /* detect which button has been pressed  */
 				counter=0;
 			}	
 
-			rb = VENDORRxBulk(rxBuffer, VENDOR_OUTPUT_REPORT_BYTES);    // read data from bulk
+			rb = VENDORRxBulk(rxBuffer, VENDOR_OUTPUT_REPORT_BYTES);    /* read data from bulk */
 			if(rb != 0) {
-				T2CONbits.TMR2ON = 0;  // disable TMR 2 to avoid interruption while sending on spi 
-				CD=DATA;     // data will be sent 
+				T2CONbits.TMR2ON = 0;  /* disable TMR 2 to avoid interruption while sending on spi  */
+				CD=DATA;     /* data will be sent  */
 #if 0
 				for(sending=0;sending<rb;sending++){
 
-					sendSPI((uint8_t)rxBuffer[sending]); // send data to LCD 				
+					sendSPI((uint8_t)rxBuffer[sending]); /* send data to LCD 				 */
 				}
 #else
 				DMACON1 = 0x24; /* auto-inc, half duplex TX */
@@ -363,12 +362,12 @@ void main(void)
 					; /* wait */
 				CS0 = 1;
 #endif
-				T2CONbits.TMR2ON = 1; // enable TMR2
+				T2CONbits.TMR2ON = 1; /* enable TMR2 */
 			}
 		
-			rr = VENDORRxReport(rxBuffer2, VENDOR_OUTPUT_REPORT_BYTES);    // read data from bulk
+			rr = VENDORRxReport(rxBuffer2, VENDOR_OUTPUT_REPORT_BYTES);    /* read data from bulk */
 			if(rr != 0) {
-				if(rxBuffer2[0]==0){    // PIC command 
+				if(rxBuffer2[0]==0){    /* PIC command  */
 					if(rxBuffer2[1]==1){
 					  LATBbits.LATB3 = 1;
 					}
@@ -376,13 +375,13 @@ void main(void)
 						  LATBbits.LATB3 = 0;
 					}
 				} else {
-					CD=COMMAND;     // LCD command
+					CD=COMMAND;     /* LCD command */
 					for(sending=1;sending<rr;sending++){
-						sendSPI((uint8_t)rxBuffer2[sending]); // send command to LCD 				
+						sendSPI((uint8_t)rxBuffer2[sending]); /* send command to LCD 				 */
 					}
 				}
 
-				// clean up rxbuffer
+				/* clean up rxbuffer */
 				for(rr=0;rr<VENDOR_OUTPUT_REPORT_BYTES;rr++){
 					rxBuffer[rr]=' ';
 					rxBuffer2[rr]=' ';
@@ -390,14 +389,14 @@ void main(void)
 				}
 			}
 		}
-		//__asm__("sleep");
+		/*__asm__("sleep"); */
 	}
 }
 
 
 /** V E C T O R  R E M A P P I N G *******************************************/
 
-//extern void _startup (void);        // See c018i.c in your C18 compiler dir
+/*extern void _startup (void);        // See c018i.c in your C18 compiler dir */
 
 void _reset (void) __naked __interrupt 0
 {
@@ -407,13 +406,15 @@ void _reset (void) __naked __interrupt 0
 void _startup (void) __naked
 {
 	__asm
-	// Initialize the stack pointer
+	/* Initialize the stack pointer */
 	lfsr 1, _stack_end
 	lfsr 2, _stack_end
-	clrf _TBLPTRU, 0    // 1st silicon doesn't do this on POR
+	clrf _TBLPTRU, 0    /* 1st silicon doesn't do this on POR */
 
-	// initialize the flash memory access configuration. this is harmless
-	// for non-flash devices, so we do it on all parts.
+	/*
+	 * initialize the flash memory access configuration. this is harmless
+	 * for non-flash devices, so we do it on all parts.
+	 */
 	bsf _EECON1, 7, 0
 	bcf _EECON1, 6, 0
 	__endasm ;
@@ -452,15 +453,15 @@ void irqh_timer2(void) __naked
 		encoder_B = ENCODER_B;
 
 		if((!encoder_A) && (encoder_A_prev)) {
-			// A has gone from high to low
+			/* A has gone from high to low */
 			if(encoder_B) {
 				VENDORTxReport("ROTARY CLOCK ", 13);
 			}   
-			else {  // A has gone from low to high
+			else {  /* A has gone from low to high */
 				VENDORTxReport("ROTARY anti-CLOCK ", 18);
 			}   
 		}   
-		encoder_A_prev = encoder_A;     // Store value for next time
+		encoder_A_prev = encoder_A;     /* Store value for next time */
 	}
 	__asm
 	retfie 1

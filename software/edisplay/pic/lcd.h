@@ -29,14 +29,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
-
-#define SI              RPOR1    // SDO2 (MSSP2)
-#define CLK             RPOR0    // SCK2 (MSSP2)
+#define SI              RPOR1    /* SDO2 (MSSP2) */
+#define CLK             RPOR0    /* SCK2 (MSSP2) */
 
 #define CD              LATAbits.LATA6    
-#define CS0             LATAbits.LATA7    // Chip select 
-#define RST             LATAbits.LATA3    // Reset
+#define CS0             LATAbits.LATA7    /* Chip select  */
+#define RST             LATAbits.LATA3    /* Reset */
 
 
 #define COMMAND         0
