@@ -39,22 +39,24 @@ initLCD(void)
 	RST=1;
 	CD = COMMAND;   
 
-	sendSPI(0xf1);  /* reset */
-	sendSPI(0x67); /* display start line 0 */
+	sendSPI(0xf1);  /* Set last COM electrode to 103 */
+	sendSPI(0x67); 
 
 	sendSPI(0xC0);  /* COM Direction normal */
-	sendSPI(0xA4);  /* Set all Pixel on */
-	sendSPI(0x40);  
+
+	sendSPI(0xA4);  /* Set all Pixel off */
+
+	sendSPI(0x40);  /* Set Display Startline to 0 */
 	sendSPI(0x50);  
 
-	sendSPI(0xB2);  /* Set Bias 1/9 (Duty 1/65) */
-	sendSPI(0xEB);  /* Booster, Regulator and Follower on */
-	sendSPI(0x81);  /* Set Contrast */
-	sendSPI(0x5F);  /* .. */
+	sendSPI(0x2B);  /* Set Panelloading to 28..38nF */
+	sendSPI(0xEB);  /* Set Bias to 1/12 */
 
+	sendSPI(0x81);  /* Set Vbias */
+	sendSPI(0x5F);
 
-	sendSPI(0xFA);  /* Temperature compensation */
-	sendSPI(0xC6);  /* .. */
+	sendSPI(0xC6);  /* 12 o'clock */
+	sendSPI(0x89);  /* Set Auto-Increment */
 	sendSPI(0xAF);  /* Display on */
 
 	cleardisplay();
