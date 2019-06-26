@@ -204,8 +204,9 @@ void main(void)
    	EECON2 = 0xAA;
     	EECON2 = 0x00; /* unlock PPS */
 
-    	RPOR0= 11;	/* map spi clock to PR0 PIN */
-   	RPOR1= 10;	/* map spi function to PR1 PIN */
+    	RPOR0= 11;	/* map RP0 pin to spi clock output */
+   	RPOR1= 10;	/* map RP1 pin to spi  data out */
+	RPINR22 = 0;	/* map SPI clock input to RP0 */
 
    	EECON2 = 0x55;
    	EECON2 = 0xAA;
@@ -214,15 +215,17 @@ void main(void)
 	INTCONbits.GIE=1;
 
 	PIR2bits.BCL1IF=0;
-        TRISAbits.TRISA7= 0;
-	TRISAbits.TRISA0= 0;
-	TRISAbits.TRISA1= 0;
-	LATAbits.LATA7 = 0; /* chip select CS1B */
+	CS0 = 0; /* chip select CS0B */
+	LATAbits.LATA0 = 1; /* SPI clock idle */
+	RST = 0;
+	CD = 0;
+        TRISAbits.TRISA7= 0; /* CS0 */
+	TRISAbits.TRISA0= 0; /* clock */
+	TRISAbits.TRISA1= 0; /* data */
 
-	TRISAbits.TRISA6 = 0;
-        TRISAbits.TRISA3 = 0;
+	TRISAbits.TRISA6 = 0; /* CD */
+        TRISAbits.TRISA3 = 0; /* RST */
 
-	RST = 1;
 	initSPI();    /* intilize spi connexion */
         initLCD();    /* intilize LCD  */
 
@@ -338,31 +341,30 @@ void main(void)
 			if(counter>2200){  /* buttons rebond  */
 				Pressed(); /* detect which button has been pressed  */
 				counter=0;
-			}	
+			}
 
-			rb = VENDORRxBulk(rxBuffer, VENDOR_OUTPUT_REPORT_BYTES);    /* read data from bulk */
-			if(rb != 0) {
-				T2CONbits.TMR2ON = 0;  /* disable TMR 2 to avoid interruption while sending on spi  */
-				CD=DATA;     /* data will be sent  */
-#if 0
-				for(sending=0;sending<rb;sending++){
-
-					sendSPI((uint8_t)rxBuffer[sending]); /* send data to LCD 				 */
-				}
-#else
-				DMACON1 = 0x24; /* auto-inc, half duplex TX */
-				DMACON2 = 0x60; /* 64 Tcy inter-byte delay */
-				DMABCH = 0;
-				DMABCL = (rb - 1);
-				TXADDRH = ((int)rxBuffer >> 8);
-				TXADDRL = ((int)rxBuffer & 0xff);
-				CS0 = 0;
-				DMACON1bits.DMAEN = 1;
-				while (DMACON1bits.DMAEN)
-					; /* wait */
+			if (DMACON1bits.DMAEN == 0) {
 				CS0 = 1;
+				rb = VENDORRxBulk(rxBuffer,
+				    VENDOR_OUTPUT_REPORT_BYTES);
+				if(rb != 0) {
+					CS0 = 0;
+					CD=DATA;
+#if 0
+					for(sending=0;sending<rb;sending++){
+
+						sendSPI((uint8_t)rxBuffer[sending]);
+					}
+#else
+					DMACON1 = 0x24; /* auto-inc, half duplex TX */
+					DMACON2 = 0x00; /* 1 Tcy inter-byte delay */
+					DMABCH = 0;
+					DMABCL = (rb - 1);
+					TXADDRH = ((int)rxBuffer >> 8);
+					TXADDRL = ((int)rxBuffer & 0xff);
+					DMACON1bits.DMAEN = 1;
 #endif
-				T2CONbits.TMR2ON = 1; /* enable TMR2 */
+				}
 			}
 		
 			rr = VENDORRxReport(rxBuffer2, VENDOR_OUTPUT_REPORT_BYTES);    /* read data from bulk */
@@ -377,7 +379,7 @@ void main(void)
 				} else {
 					CD=COMMAND;     /* LCD command */
 					for(sending=1;sending<rr;sending++){
-						sendSPI((uint8_t)rxBuffer2[sending]); /* send command to LCD 				 */
+						sendSPI((uint8_t)rxBuffer2[sending]); /* send command to LCD */
 					}
 				}
 

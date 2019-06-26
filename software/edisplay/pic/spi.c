@@ -32,9 +32,9 @@ initSPI(void)
 {
 
 	/* SPI Mode 1,0 */
-	SSP2CON1 = 0x3a;  
+	SSP2CON1 = 0x11;
 
-	SSP2STATbits.CKE = 0;   /* CKE = 1 */
+	SSP2STAT = 0; /* CKE = 0 */
 	SSP2CON1bits.SSPEN = 1; 
 }
 
