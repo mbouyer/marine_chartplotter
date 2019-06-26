@@ -1,6 +1,6 @@
 /*
  *  Copyright (c) 2019 Manuel Bouyer.
- * 
+ *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
  *  are met:
@@ -9,7 +9,7 @@
  *  2. Redistributions in binary form must reproduce the above copyright
  *     notice, this list of conditions and the following disclaimer in the
  *     documentation and/or other materials provided with the distribution.
- * 
+ *
  *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  *  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  *  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -23,7 +23,8 @@
  */
 
 #include <pic18fregs.h>
-#include <stdio.h> 
+#include <stdio.h>
+#include "comms.h"
 #include "usb.h"
 #include "lcd.h"
 #include "spi.h"
@@ -31,22 +32,54 @@
 
 unsigned char sending;
 
-extern char stack; 
+extern char stack;
 extern char stack_end;
 byte i,rr,rb;
 #pragma stack 0x100 256
 
 static char counter_1hz;
 static volatile short counter_10hz;
-#define TIMER2_10HZ 4
+#define TIMER2_10HZ 100
 static volatile unsigned char softintrs;
-#define INT_10HZ         (unsigned char)0x01
-#define INT_NEEDAD       (unsigned char)0x02
-#define INT_XMIT         (unsigned char)0x04
-#define INT_ADDONE       (unsigned char)0x08
-#define INT_DOAD         (unsigned char)0x10
- 
+#define INT_10HZ        (unsigned char)0x01
+#define INT_ADDONE      (unsigned char)0x02
+#define INT_ST_CH       (unsigned char)0x04
+
 #define TIMER0_5MS 192 /* 48 without PLL */
+
+union rot_status {
+	struct {
+		unsigned rotary_a       : 1;
+		unsigned rotary_b       : 1;
+		unsigned pending_a      : 1;
+		unsigned pending_b      : 1;
+	} s;
+	unsigned char v;
+};
+
+static union rot_status rot_status;
+static volatile char rotary_pos;
+static unsigned char rotary_a;
+static unsigned char rotary_b;
+
+union buttons_status {
+	struct {
+		unsigned b1       : 1;
+		unsigned b2       : 1;
+		unsigned b3       : 1;
+		unsigned b4       : 1;
+		unsigned br       : 1;
+	} s;
+	unsigned char v;
+};
+
+static volatile union buttons_status buttons_status;
+static unsigned char button1;
+static unsigned char button2;
+static unsigned char button3;
+static unsigned char button4;
+static unsigned char buttonr;
+
 
 void _reset (void) __naked __interrupt 0;
 void _startup (void) __naked;
@@ -60,42 +93,14 @@ char *txbuf_cons; /* consumer index in txbuf */
 #define UART_BUFSIZE_MASK 0xff
 
 
-static char ad_channel;
-static long ad_i_result;
-unsigned int ad_v_result;
-unsigned int counter=0;
+unsigned char ad_result;
 
-#define ENCODER_A PORTBbits.RB4        /* Encoder A Pin */
-#define ENCODER_B PORTBbits.RB5        /* Encoder B Pin */
+#define ROTARY_A PORTBbits.RB4        /* Encoder A Pin */
+#define ROTARY_B PORTBbits.RB5        /* Encoder B Pin */
 
-unsigned char    encoder_A;
-unsigned char    encoder_B;
-unsigned char    encoder_A_prev=0;
-
-char txBuffer[VENDOR_INPUT_REPORT_BYTES];
+static struct comm_status comm_status;
 char rxBuffer[VENDOR_OUTPUT_REPORT_BYTES];
 char rxBuffer2[VENDOR_OUTPUT_REPORT_BYTES];
-
-static void
-Pressed() 
-{
-	T2CONbits.TMR2ON = 0;
-
-	if(ad_v_result < 1700 && ad_v_result > 1300)
-		VENDORTxReport("RED BUTTON PRESSED", 19);
-	else if(ad_v_result < 1300 && ad_v_result > 1000)
-		VENDORTxReport("LEFT BLACK BUTTON PRESSED", 25);
-	else if(ad_v_result < 1000 && ad_v_result > 700)
-		VENDORTxReport("RIGHT BLACK BUTTON PRESSED", 26);
-	else if(ad_v_result < 700 && ad_v_result > 400)
-		VENDORTxReport("YELLOW BUTTON PRESSED", 22);
-		
-	T2CONbits.TMR2ON = 1;
-	for(rr=0;rr<VENDOR_OUTPUT_REPORT_BYTES;rr++)
-		rxBuffer[rr]='\n';
-
-}
-
 
 char uart_txbuf[UART_BUFSIZE];
 unsigned char uart_txbuf_prod, uart_txbuf_cons;
@@ -162,13 +167,20 @@ process_char(char c) __wparam
 	if (c == 'r') {
 		printf("reset\r\n"); flushtx();
 		__asm__("reset");
-	} 
+	}
 }
 
-void main(void)
+void
+main(void)
 {
 	static byte cdc_trf_state_l;
 	softintrs = 0;
+	rot_status.v = 0;
+	rotary_pos = 0;
+	buttons_status.v = 0;
+
+	rotary_a = rotary_b = 0;
+	button1 = button2 = button3 = button4 = buttonr = 0;
 
 	counter_10hz = TIMER2_10HZ;
 	counter_1hz = 10;
@@ -231,24 +243,24 @@ void main(void)
 
 	RCONbits.IPEN=1; /* enable interrupt priority */
 
-	/* configure timer0 as free-running counter at 46.875Khz */     
-	T0CON = 0x07; /* b00000111: internal clock, 1/256 prescaler */  
+	/* configure timer0 as free-running counter at 46.875Khz */
+	T0CON = 0x07; /* b00000111: internal clock, 1/256 prescaler */
 	INTCONbits.TMR0IF = 0;
 	INTCONbits.TMR0IE = 0; /* no interrupt */
 	T0CONbits.TMR0ON = 1;
 
-#if TIMER2_10HZ == 4
+#if TIMER2_10HZ == 100
 	/* configure timer2 for 1Khz interrupt */
-	T2CON = 0x22; /* b00100010: postscaller 1/5, prescaler 1/16 */  
-	PR2 = 150; /* 1khz output */  
+	T2CON = 0x22; /* b00100010: postscaller 1/5, prescaler 1/16 */
+	PR2 = 150; /* 1khz output */
 #elif TIMER2_10HZ == 1000
 	/* configure timer2 for 10Khz interrupt */
-	T2CON = 0x22; /* b00100010: postscaller 1/5, prescaler 1/16 */  
-	PR2 = 15; /* 10khz output */  
+	T2CON = 0x22; /* b00100010: postscaller 1/5, prescaler 1/16 */
+	PR2 = 15; /* 10khz output */
 #elif TIMER2_10HZ == 2000
 	/* configure timer2 for 20Khz interrupt */
-	T2CON = 0x21; /* b00100001: postscaller 1/5, prescaler 1/4 */  
-	PR2 = 29; /* 20khz output */  
+	T2CON = 0x21; /* b00100001: postscaller 1/5, prescaler 1/4 */
+	PR2 = 29; /* 20khz output */
 #else
 #error "unknown TIMER2_10HZ"
 #endif
@@ -263,8 +275,8 @@ void main(void)
 	/* init TX buffer pointers */
 	uart_txbuf_cons = uart_txbuf_prod = 0;
 
-	INTCONbits.GIE_GIEH=1;  /* enable high-priority interrupts */   
-	INTCONbits.PEIE_GIEL=1; /* enable low-priority interrrupts */   
+	INTCONbits.GIE_GIEH=1;  /* enable high-priority interrupts */
+	INTCONbits.PEIE_GIEL=1; /* enable low-priority interrrupts */
 	TRISBbits.TRISB4 = 1;
 	TRISBbits.TRISB5 = 1;
 	TRISA = 0x04; 		/*set all digital I/O to inputs */
@@ -284,21 +296,21 @@ void main(void)
 	/* clk = fosc/64, tacq = 0tad */
 	ADCON1 = 0x86; /* b10000110 */
 
-	/* ANCON already set up */    
+	/* ANCON already set up */
 
-	/* start calibration */       
+	/* start calibration */
 	ADCON1bits.ADCAL = 1;
-	ADCON0bits.GO_NOT_DONE =1;    
+	ADCON0bits.GO_NOT_DONE =1;
 	while (ADCON0bits.GO_NOT_DONE)
 	  ; /* wait */
 	ADCON1bits.ADCAL = 0;
 #endif
-	/* enable watch dog timer */  
+	/* enable watch dog timer */
 	WDTCON = 0x01;
 
 #include "version.h"
 	fprintf(STREAM_USER, "\nthermoUSB v%x.%x", REV_MAJOR, REV_MINOR);
-	fprintf(STREAM_USER, BUILD);  
+	fprintf(STREAM_USER, BUILD);
 #undef BUILD
 	flushtx();
 	PORTBbits.RB3 = 0;
@@ -310,11 +322,10 @@ void main(void)
 	currentConfiguration = 0x00;
 
 	PORTBbits.RB3 = 0;
-	
+
 	while(1) {
-		counter++;
 		__asm__("clrwdt");
-		
+
 		while (PIR3bits.RC2IF) { /* a char is ready on serial */
 			process_char(RCREG2);
 			if (RCSTA2bits.OERR) {
@@ -322,13 +333,6 @@ void main(void)
 			    RCSTA2bits.CREN = 1;
 			}
 		}
-		ADRESL=0;
-		ADRESH=0;
-		ADCON0bits.GO = 1; /*start the conversion */
-
-		while(ADCON0bits.GO==1){}; /*wait for the conversion to end  */
-		ad_v_result = (ADRESH*8)+ADRESL; /*combine the 10 bits of the conversion */
-
 		EnableUSBModule();  /* enable usb  */
 		/* As long as we aren't in test mode (UTEYE), process */
 	       /* USB transactions. */
@@ -338,11 +342,6 @@ void main(void)
 
 		if ((deviceState >= CONFIGURED) && (UCONbits.SUSPND==0))
 		{
-			if(counter>2200){  /* buttons rebond  */
-				Pressed(); /* detect which button has been pressed  */
-				counter=0;
-			}
-
 			if (DMACON1bits.DMAEN == 0) {
 				CS0 = 1;
 				rb = VENDORRxBulk(rxBuffer,
@@ -366,7 +365,7 @@ void main(void)
 #endif
 				}
 			}
-		
+
 			rr = VENDORRxReport(rxBuffer2, VENDOR_OUTPUT_REPORT_BYTES);    /* read data from bulk */
 			if(rr != 0) {
 				if(rxBuffer2[0]==0){    /* PIC command  */
@@ -387,8 +386,18 @@ void main(void)
 				for(rr=0;rr<VENDOR_OUTPUT_REPORT_BYTES;rr++){
 					rxBuffer[rr]=' ';
 					rxBuffer2[rr]=' ';
-					txBuffer[rr]=' ';
 				}
+			}
+			if (softintrs & INT_ST_CH) {
+				printf("report %x\n", ad_result);
+				INTCONbits.GIE_GIEH=0;  /* disable interrupts */
+				comm_status.buttons = buttons_status.v;
+				comm_status.rot_pos = rotary_pos;
+				rotary_pos = 0;
+				softintrs &= ~INT_ST_CH;
+				INTCONbits.GIE_GIEH=1;  /* enable interrupts */
+				VENDORTxReport((byte *)&comm_status,
+				    sizeof(comm_status));
 			}
 		}
 		/*__asm__("sleep"); */
@@ -447,25 +456,61 @@ void irqh_timer2(void) __naked
 	 * no sdcc registers are automatically saved,
 	 * so we have to be carefull with C code !
 	 */
+	__asm
+	MOVFF   r0x00, POSTDEC1
+	__endasm;
 	counter_10hz--;
 	if (counter_10hz == 0) {
 		counter_10hz = TIMER2_10HZ;
 		softintrs |= INT_10HZ;
-		encoder_A = ENCODER_A;
-		encoder_B = ENCODER_B;
-
-		if((!encoder_A) && (encoder_A_prev)) {
-			/* A has gone from high to low */
-			if(encoder_B) {
-				VENDORTxReport("ROTARY CLOCK ", 13);
-			}   
-			else {  /* A has gone from low to high */
-				VENDORTxReport("ROTARY anti-CLOCK ", 18);
-			}   
-		}   
-		encoder_A_prev = encoder_A;     /* Store value for next time */
 	}
+	rotary_a = rotary_a << 1;
+	if (ROTARY_A)
+		rotary_a |= (unsigned char)1;
+	rotary_b = rotary_b << 1;
+	if (ROTARY_B)
+		rotary_b |= (unsigned char)1;
+	rotary_a &= 0xf;
+	rotary_b &= 0xf;
+	if (rotary_a == 0xf) {
+		if (!rot_status.s.rotary_a) { /* rising edge on A */
+			if (rot_status.s.pending_b) {
+				/* already got rising edge on B */
+				rotary_pos -= (signed char)1;
+				softintrs |= INT_ST_CH;
+				rot_status.s.pending_b = 0;
+			} else {
+				rot_status.s.pending_a = 1;
+			}
+		}
+		rot_status.s.rotary_a = 1;
+	} else if (rotary_a == 0) {
+		rot_status.s.rotary_a = 0;
+		rot_status.s.pending_a = 0;
+	}
+	if (rotary_b == 0xf) {
+		if (!rot_status.s.rotary_b) { /* rising edge on B */
+			if (rot_status.s.pending_a) {
+				/* already got rising edge on A */
+				rotary_pos += (signed char)1;
+				softintrs |= INT_ST_CH;
+				rot_status.s.pending_a = 0;
+			} else {
+				rot_status.s.pending_b = 1;
+			}
+		}
+		rot_status.s.rotary_b = 1;
+	} else if (rotary_b == 0) {
+		rot_status.s.rotary_b = 0;
+		rot_status.s.pending_b = 0;
+	}
+	if (PIE1bits.ADIE == 0) {
+		PIE1bits.ADIE = 1;
+		ADCON0bits.GO = 1;
+	}
+
 	__asm
+	MOVFF   PREINC1, r0x00
 	retfie 1
 	nop
 	__endasm;
@@ -474,15 +519,79 @@ void irqh_timer2(void) __naked
 void _irq (void) __interrupt 2 /* low priority */
 {
 	if (PIE1bits.ADIE && PIR1bits.ADIF) {
+		/* A/D values:
+		 * ADRH = 256 / Vcc * V
+		 * V = Vcc * R / (R + 10k)
+		 * so
+		 * ADR = 256 * R / (R + 10k)            
+		 * for our buttons this gives us:
+		 * 0
+		 * 42
+		 * 85 
+		 * 128
+		 * 170
+		 */
+
+		ad_result = ADRESH;
 		PIE1bits.ADIE = 0;
-		/* process A/D in main loop */
+		button1 = button1 << 1;
+		button2 = button2 << 1;
+		button3 = button3 << 1;
+		button4 = button4 << 1;
+		buttonr = buttonr << 1;
+		if(ad_result < 212 && ad_result > 149)
+			button1 |= (char)1;
+		else if(ad_result < 149 && ad_result > 106)
+			button2 |= (char)1;
+		else if(ad_result < 106 && ad_result > 63)
+			button3 |= (char)1;
+		else if(ad_result < 63 && ad_result > 21)
+			button4 |= (char)1;
+		else if(ad_result < 21)
+			buttonr |= (char)1;
+		if (button1 == 0xff && buttons_status.s.b1 == 0) {
+			buttons_status.s.b1 = 1;
+			softintrs |= INT_ST_CH;
+		} else if (button1 == 0x00 && buttons_status.s.b1 == 1) {
+			buttons_status.s.b1 = 0;
+			softintrs |= INT_ST_CH;
+		}
+		if (button2 == 0xff && buttons_status.s.b2 == 0) {
+			buttons_status.s.b2 = 1;
+			softintrs |= INT_ST_CH;
+		} else if (button2 == 0x00 && buttons_status.s.b2 == 1) {
+			buttons_status.s.b2 = 0;
+			softintrs |= INT_ST_CH;
+		}
+		if (button3 == 0xff && buttons_status.s.b3 == 0) {
+			buttons_status.s.b3 = 1;
+			softintrs |= INT_ST_CH;
+		} else if (button3 == 0x00 && buttons_status.s.b3 == 1) {
+			buttons_status.s.b3 = 0;
+			softintrs |= INT_ST_CH;
+		}
+		if (button4 == 0xff && buttons_status.s.b4 == 0) {
+			buttons_status.s.b4 = 1;
+			softintrs |= INT_ST_CH;
+		} else if (button4 == 0x00 && buttons_status.s.b4 == 1) {
+			buttons_status.s.b4 = 0;
+			softintrs |= INT_ST_CH;
+		}
+		if (buttonr == 0xff && buttons_status.s.br == 0) {
+			buttons_status.s.br = 1;
+			softintrs |= INT_ST_CH;
+		} else if (buttonr == 0x00 && buttons_status.s.br == 1) {
+			buttons_status.s.br = 0;
+			softintrs |= INT_ST_CH;
+		}
+		PIE1bits.ADIE = 0;
 	}
 	if (PIE3bits.TX2IE && PIR3bits.TX2IF) {
 		if (uart_txbuf_prod == uart_txbuf_cons) {
 			PIE3bits.TX2IE = 0; /* buffer empty */
 		} else {
 			/* Place char in TXREG - this starts transmition */
-			TXREG2 = uart_txbuf[uart_txbuf_cons]; 
+			TXREG2 = uart_txbuf[uart_txbuf_cons];
 			uart_txbuf_cons = (uart_txbuf_cons + 1) & UART_BUFSIZE_MASK;
 		}
 	}
