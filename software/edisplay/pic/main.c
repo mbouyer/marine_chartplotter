@@ -178,6 +178,7 @@ main(void)
 	rot_status.v = 0;
 	rotary_pos = 0;
 	buttons_status.v = 0;
+	comm_status.rot_pos = 0;
 
 	rotary_a = rotary_b = 0;
 	button1 = button2 = button3 = button4 = buttonr = 0;
@@ -392,12 +393,14 @@ main(void)
 				printf("report %x\n", ad_result);
 				INTCONbits.GIE_GIEH=0;  /* disable interrupts */
 				comm_status.buttons = buttons_status.v;
-				comm_status.rot_pos = rotary_pos;
+				comm_status.rot_pos += rotary_pos;
 				rotary_pos = 0;
-				softintrs &= ~INT_ST_CH;
 				INTCONbits.GIE_GIEH=1;  /* enable interrupts */
-				VENDORTxReport((byte *)&comm_status,
-				    sizeof(comm_status));
+				if (VENDORTxReport((byte *)&comm_status,
+				    sizeof(comm_status)) == sizeof(comm_status)) {
+					comm_status.rot_pos = 0;
+					softintrs &= ~INT_ST_CH;
+				}
 			}
 		}
 		/*__asm__("sleep"); */
