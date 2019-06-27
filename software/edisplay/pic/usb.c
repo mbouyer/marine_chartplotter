@@ -94,8 +94,6 @@ const byte deviceDescriptor[] =
 
 // Total config size is 0x09 + 0x09 + 0x09 + 0x07 + 0x07+ 0x07 = 0x30
 #define CFSZ 0x30
-#define HISZ VENDOR_INPUT_REPORT_BYTES
-#define HOSZ VENDOR_OUTPUT_REPORT_BYTES
 
 const ConfigStruct configDescriptor =
 {
@@ -117,49 +115,19 @@ const ConfigStruct configDescriptor =
 		// VENDOR Endpoint 1 In
 		0x07, 0x05, // bLength, bDescriptorType (Endpoint)
 		0x81, 0x03, // bEndpointAddress, bmAttributes (Interrupt)
-		0x20, 0x00, // wMaxPacketSize (low), wMaxPacketSize (high)
+		VENDOR_INPUT_INTR_BYTES, 0x00, // wMaxPacketSize (low), wMaxPacketSize (high)
 		0x01,	 // bInterval (1 millisecond)
 		// VENDOR Endpoint 1 Out
 		0x07, 0x05, // bLength, bDescriptorType (Endpoint)
 		0x01, 0x03, // bEndpointAddress, bmAttributes (Interrupt)
-		HOSZ, 0x00, // wMaxPacketSize (low), wMaxPacketSize (high)
+		VENDOR_OUTPUT_INTR_BYTES, 0x00, // wMaxPacketSize (low), wMaxPacketSize (high)
 		0x01,	 // bInterval (1 millisecond)
 		// VENDOR Endpoint 2 Out
 		0x07, 0x05, // bLength, bDescriptorType (Endpoint)
 		0x02, 0x02, // bEndpointAddress, bmAttributes (Interrupt)
-		HOSZ, 0x00, // wMaxPacketSize (low), wMaxPacketSize (high)
+		VENDOR_OUTPUT_BULK_BYTES, 0x00, // wMaxPacketSize (low), wMaxPacketSize (high)
 		0x01,	 // bInterval (1 millisecond)
 	}
-};
-
-#define HIRB VENDOR_INPUT_REPORT_BYTES
-#define HORB VENDOR_OUTPUT_REPORT_BYTES
-#define HFRB VENDOR_FEATURE_REPORT_BYTES
-
-#define VENDOR_REPORT_SIZE 0x2f // Size is from VENDOR Descriptor tool
-const byte VENDORReport[VENDOR_REPORT_SIZE] = {
-	0x06, 0xa0, 0xff,	// USAGE_PAGE (Vendor Defined Page 1)
-	0x09, 0x01,		// USAGE (Vendor Usage 1)
-	0xa1, 0x01,		// COLLECTION (Application)
-	0x09, 0x02,		//	 USAGE (Vendor Usage 1)
-	0x15, 0x00,		//	 LOGICAL_MINIMUM (0)
-	0x26, 0x00, 0xff,	//	 LOGICAL_MAXIMUM (255)
-	0x75, 0x08,		//	 REPORT_SIZE (8)
-	0x95, HIRB,		//	 REPORT_COUNT (HIRB)
-	0x81, 0x02,		//	 INPUT (Data,Var,Abs)
-	0x09, 0x03,		//	 USAGE (Vendor Usage 1)
-	0x15, 0x00,		//	 LOGICAL_MINIMUM (0)
-	0x26, 0x00, 0xff,	//	 LOGICAL_MAXIMUM (255)
-	0x75, 0x08,		//	 REPORT_SIZE (8)
-	0x95, HORB,		//	 REPORT_COUNT (HORB)
-	0x91, 0x02,		//	 OUTPUT (Data,Var,Abs)
-	0x09, 0x04,		//	 USAGE (Vendor Usage 1)
-	0x15, 0x00,		//	 LOGICAL_MINIMUM (0)
-	0x26, 0x00, 0xff,	//	 LOGICAL_MAXIMUM (255)
-	0x75, 0x08,		//	 REPORT_SIZE (8)
-	0x95, HFRB,		//	 REPORT_COUNT (HFRB)
-	0xb1, 0x02,		//	 FEATURE (Data,Var,Abs)
-	0xc0			// END_COLLECTION
 };
 
 const byte stringDescriptor0[] =
@@ -192,18 +160,21 @@ volatile BDT __at(BDT_BASE + 0x10) ep2Bo;					//Endpoint #2 BD Out
 // TBD: add definitions for additional endpoints (2-16).
 
 // Put endpoint 0 buffers into dual port RAM
-#pragma udata usbram5 SetupPacket controlTransferBuffer
+#pragma udata usbram4 SetupPacket controlTransferBuffer
 volatile setupPacketStruct SetupPacket;
 volatile byte controlTransferBuffer[E0SZ];
 
 // Put USB I/O buffers into dual port RAM.
-#pragma udata usbram5 VENDORRxBuffer2 VENDORTxBuffer
-#pragma udata usbram5 VENDORRxBuffer VENDORTxBuffer
+#pragma udata usbram5 VENDORRxBufferB0 VENDORTxIntrBuffer
+#pragma udata usbram5 VENDORRxBufferB1 VENDORRxIntrBuffer
 
 // VENDOR specific buffers
-volatile byte VENDORRxBuffer[VENDOR_OUTPUT_REPORT_BYTES];
-volatile byte VENDORRxBuffer2[VENDOR_OUTPUT_REPORT_BYTES];
-volatile byte VENDORTxBuffer[VENDOR_INPUT_REPORT_BYTES];
+volatile byte VENDORRxBufferB0[VENDOR_OUTPUT_BULK_BYTES];
+volatile byte VENDORRxBufferB1[VENDOR_OUTPUT_BULK_BYTES];
+volatile byte VENDORRxIntrBuffer[VENDOR_OUTPUT_INTR_BYTES];
+volatile byte VENDORTxIntrBuffer[VENDOR_INPUT_INTR_BYTES];
+
+static unsigned char activeBulk;
 
 //
 // Start of code for VENDOR specific code.
@@ -223,11 +194,11 @@ VENDORTxReport(byte *buffer, byte len)
 	if (ep1Bi.Stat & UOWN)
 		return 0;
 	// Truncate requests that are too large. TBD: send 
-	if(len > VENDOR_INPUT_REPORT_BYTES)
-		len = VENDOR_INPUT_REPORT_BYTES;
+	if(len > VENDOR_INPUT_INTR_BYTES)
+		len = VENDOR_INPUT_INTR_BYTES;
 	 // Copy data from user's buffer to dual-ram buffer
 	for (i = 0; i < len; i++)
-		VENDORTxBuffer[i] = buffer[i];
+		VENDORTxIntrBuffer[i] = buffer[i];
 	// Toggle the data bit and give control to the SIE
 	ep1Bi.Cnt = len;
 	if(ep1Bi.Stat & DTS)
@@ -258,7 +229,7 @@ VENDORRxReport(byte *buffer, byte len)
 
 		// Copy data from dual-ram buffer to user's buffer
 		for(VENDORRxLen = 0; VENDORRxLen < len; VENDORRxLen++) {
-			buffer[VENDORRxLen] = VENDORRxBuffer[VENDORRxLen];
+			buffer[VENDORRxLen] = VENDORRxIntrBuffer[VENDORRxLen];
 		}
 #if DBUG_LEVL >= DBUG_UDAT
 		printf("VENDORRxReport: %d: 0x%hx 0x%hx 0x%hx 0x%hx\r\n",
@@ -267,7 +238,7 @@ VENDORRxReport(byte *buffer, byte len)
 #endif
 		// Reset the VENDOR output buffer descriptor so the host
 		// can send more data.
-		ep1Bo.Cnt = sizeof(VENDORRxBuffer);
+		ep1Bo.Cnt = VENDOR_OUTPUT_INTR_BYTES;
 		if(ep1Bo.Stat & DTS)
 			ep1Bo.Stat = UOWN | DTSEN;
 		else
@@ -281,10 +252,9 @@ VENDORRxReport(byte *buffer, byte len)
 // only the available bytes will be returned. Any bytes in the buffer
 // beyond len will be discarded.
 
-byte
-VENDORRxBulk(byte *buffer, byte len)
+short
+VENDORRxBulk()
 {
-	VENDORRxLen = 0;
 #if DBUG_LEVL >= DBUG_UDAT
 	// printf("VENDORRxReport: %d\r\n", len);
 #endif
@@ -293,13 +263,8 @@ VENDORRxBulk(byte *buffer, byte len)
 	// is safe to pull data from it.
 	if(!(ep2Bo.Stat & UOWN)) {
 		// See if the host sent fewer bytes that we asked for.
-		if(len > ep2Bo.Cnt)
-			len = ep2Bo.Cnt;
+		short len = ep2Bo.Cnt;
 
-		// Copy data from dual-ram buffer to user's buffer
-		for(VENDORRxLen = 0; VENDORRxLen < len; VENDORRxLen++) {
-			buffer[VENDORRxLen] = VENDORRxBuffer2[VENDORRxLen];
-		}
 #if DBUG_LEVL >= DBUG_UDAT
 		printf("VENDORRxReport: %d: 0x%hx 0x%hx 0x%hx 0x%hx\r\n",
 		   (word)len, (byte)buffer[0], (byte)buffer[1],
@@ -307,13 +272,22 @@ VENDORRxBulk(byte *buffer, byte len)
 #endif
 		// Reset the VENDOR output buffer descriptor so the host
 		// can send more data.
-		ep2Bo.Cnt = sizeof(VENDORRxBuffer2);
+		if (activeBulk == 0) {
+			activeBulk = 1;
+			ep2Bo.ADDR = PTR16(&VENDORRxBufferB1[0]);
+		} else {
+			len |= (short)0x100;
+			activeBulk = 0;
+			ep2Bo.ADDR = PTR16(&VENDORRxBufferB0[0]);
+		}
+		ep2Bo.Cnt = VENDOR_OUTPUT_BULK_BYTES;
 		if(ep2Bo.Stat & DTS)
 			ep2Bo.Stat = UOWN | DTSEN;
 		else
 			ep2Bo.Stat = UOWN | DTS | DTSEN;
+		return len;
 	}
-	return VENDORRxLen;
+	return 0;
 }
 
 // After configuration is complete, this routine is called to initialize
@@ -329,17 +303,17 @@ VENDORInitEndpoint(void)
 	// Turn on both in and out for this endpoint
 	UEP1 = 0x1E;
 	UEP2 = 0x1C;
-	ep1Bo.Cnt = sizeof(VENDORRxBuffer);
-	ep1Bo.ADDR = PTR16(&VENDORRxBuffer);
+	ep1Bo.Cnt = sizeof(VENDORRxIntrBuffer);
+	ep1Bo.ADDR = PTR16(&VENDORRxIntrBuffer[0]);
 	ep1Bo.Stat = UOWN | DTSEN;
 
-	ep1Bi.ADDR = PTR16(&VENDORTxBuffer);
+	ep1Bi.ADDR = PTR16(&VENDORTxIntrBuffer[0]);
 	ep1Bi.Stat = DTS;
 
-	ep2Bo.Cnt = sizeof(VENDORRxBuffer2);
-	ep2Bo.ADDR = PTR16(&VENDORRxBuffer2);
+	ep2Bo.Cnt = VENDOR_OUTPUT_BULK_BYTES;
+	ep2Bo.ADDR = PTR16(&VENDORRxBufferB0[0]);
 	ep2Bo.Stat = UOWN | DTSEN;
-
+	activeBulk = 0;
 }
 
 // Process VENDOR specific requests
@@ -363,15 +337,6 @@ ProcessVENDORRequest(void)
 			//typecast below got it working with SDCC 2.8.0 
 			outPtr = (unsigned char *) (&configDescriptor.VENDORDescriptor);
 			wCount = VENDOR_HEADER_SIZE;
-		}
-		else if (descriptorType == REPORT_DESCRIPTOR) {
-#if DBUG_LEVL >= DBUG_UVENDOR
-			printf("VENDOR: REPORT_DESCRIPTOR\r\n");
-#endif
-			// Report descriptor.
-			requestHandled = 1;
-			outPtr = (byte *)VENDORReport;
-			wCount = VENDOR_REPORT_SIZE;
 		}
 		else if (descriptorType == PHYSICAL_DESCRIPTOR) {
 #if DBUG_LEVL >= DBUG_UVENDOR

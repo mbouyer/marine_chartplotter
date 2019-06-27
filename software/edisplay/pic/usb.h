@@ -132,13 +132,14 @@ extern volatile setupPacketStruct SetupPacket;
 #define E0SZ 32
 
 // Size of the feature, input, and output reports
-#define VENDOR_INPUT_REPORT_BYTES   32
-#define VENDOR_OUTPUT_REPORT_BYTES  32
-#define VENDOR_FEATURE_REPORT_BYTES 32
+#define VENDOR_INPUT_INTR_BYTES  4
+#define VENDOR_OUTPUT_BULK_BYTES 64
+#define VENDOR_OUTPUT_INTR_BYTES 32
 
-extern volatile byte VENDORRxBuffer[VENDOR_OUTPUT_REPORT_BYTES]; // Data received OUT from the host
-extern volatile byte VENDORRxBuffer2[VENDOR_OUTPUT_REPORT_BYTES]; // Data received OUT from the host
-extern volatile byte VENDORTxBuffer[VENDOR_INPUT_REPORT_BYTES]; // Data sent IN to host
+extern volatile byte VENDORRxBufferB0[VENDOR_OUTPUT_BULK_BYTES]; // Data received OUT from the host
+extern volatile byte VENDORRxBufferB1[VENDOR_OUTPUT_BULK_BYTES]; // Data received OUT from the host
+extern volatile byte VENDORRxIntrBuffer[VENDOR_OUTPUT_INTR_BYTES]; // Data received OUT from the host
+extern volatile byte VENDORTxIntrBuffer[VENDOR_INPUT_INTR_BYTES]; // Data sent IN to host
 
 // inPtr/OutPtr are used to move data from user memory (RAM/ROM/EEPROM) buffers
 // from/to USB dual port buffers.
@@ -156,5 +157,5 @@ extern byte VENDORRxLen;
 // Functions for reading/writing the VENDOR interrupt endpoint
 byte VENDORTxReport(byte *buffer, byte len);
 byte VENDORRxReport(byte *buffer, byte len);
-byte VENDORRxBulk(byte *buffer, byte len);
+short VENDORRxBulk(void);
 #endif //USB_H

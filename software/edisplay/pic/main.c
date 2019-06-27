@@ -34,7 +34,8 @@ unsigned char sending;
 
 extern char stack;
 extern char stack_end;
-byte i,rr,rb;
+byte i,rr;
+short rb;
 #pragma stack 0x100 256
 
 static char counter_1hz;
@@ -99,8 +100,7 @@ unsigned char ad_result;
 #define ROTARY_B PORTBbits.RB5        /* Encoder B Pin */
 
 static struct comm_status comm_status;
-char rxBuffer[VENDOR_OUTPUT_REPORT_BYTES];
-char rxBuffer2[VENDOR_OUTPUT_REPORT_BYTES];
+char rxBuffer[VENDOR_OUTPUT_INTR_BYTES];
 
 char uart_txbuf[UART_BUFSIZE];
 unsigned char uart_txbuf_prod, uart_txbuf_cons;
@@ -345,48 +345,48 @@ main(void)
 		{
 			if (DMACON1bits.DMAEN == 0) {
 				CS0 = 1;
-				rb = VENDORRxBulk(rxBuffer,
-				    VENDOR_OUTPUT_REPORT_BYTES);
+				rb = VENDORRxBulk();
 				if(rb != 0) {
 					CS0 = 0;
 					CD=DATA;
-#if 0
-					for(sending=0;sending<rb;sending++){
-
-						sendSPI((uint8_t)rxBuffer[sending]);
-					}
-#else
 					DMACON1 = 0x24; /* auto-inc, half duplex TX */
 					DMACON2 = 0x00; /* 1 Tcy inter-byte delay */
 					DMABCH = 0;
-					DMABCL = (rb - 1);
-					TXADDRH = ((int)rxBuffer >> 8);
-					TXADDRL = ((int)rxBuffer & 0xff);
+					DMABCL = ((rb & 0xff) - 1);
+					if ((rb & 0x100) == 0) {
+						TXADDRH = ((int)VENDORRxBufferB0 >> 8);
+						TXADDRL = ((int)VENDORRxBufferB0 & 0xff);
+					} else {
+						TXADDRH = ((int)VENDORRxBufferB1 >> 8);
+						TXADDRL = ((int)VENDORRxBufferB1 & 0xff);
+					}
 					DMACON1bits.DMAEN = 1;
-#endif
 				}
 			}
+			if (DMACON1bits.DMAEN == 0) {
+				CS0 = 1;
+				rr = VENDORRxReport(rxBuffer,
+				    VENDOR_OUTPUT_INTR_BYTES);    /* read data from interrupt */
+				if(rr != 0) {
+					if(rxBuffer[0]==0){ /* PIC command */
+						if(rxBuffer[1]==1){
+							LATBbits.LATB3 = 1;
+						}
+						if(rxBuffer[1]==0){
+							LATBbits.LATB3 = 0;
+						}
+					} else {
+						CS0 = 0;
+						CD=COMMAND; /* LCD command */
+						DMACON1 = 0x24; /* auto-inc, half duplex TX */
+						DMACON2 = 0x00; /* 1 Tcy inter-byte delay */
+						DMABCH = 0;
+						DMABCL = (rr - 1);
+						TXADDRH = ((int)rxBuffer >> 8);
+						TXADDRL = ((int)rxBuffer & 0xff);
+						DMACON1bits.DMAEN = 1;
+					}
 
-			rr = VENDORRxReport(rxBuffer2, VENDOR_OUTPUT_REPORT_BYTES);    /* read data from bulk */
-			if(rr != 0) {
-				if(rxBuffer2[0]==0){    /* PIC command  */
-					if(rxBuffer2[1]==1){
-					  LATBbits.LATB3 = 1;
-					}
-					if(rxBuffer2[1]==0){
-						  LATBbits.LATB3 = 0;
-					}
-				} else {
-					CD=COMMAND;     /* LCD command */
-					for(sending=1;sending<rr;sending++){
-						sendSPI((uint8_t)rxBuffer2[sending]); /* send command to LCD */
-					}
-				}
-
-				/* clean up rxbuffer */
-				for(rr=0;rr<VENDOR_OUTPUT_REPORT_BYTES;rr++){
-					rxBuffer[rr]=' ';
-					rxBuffer2[rr]=' ';
 				}
 			}
 			if (softintrs & INT_ST_CH) {
