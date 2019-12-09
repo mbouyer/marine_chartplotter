@@ -192,8 +192,8 @@ main(void)
 	ANCON0 = 0xf0; /* an0-an3 analog, an4-an7 digital */
 	ANCON1 = 0x3f; /* an8-12 digital */
 
+	LATBbits.LATB3 = 0;
 	TRISBbits.TRISB3 = 0;
-	PORTBbits.RB3 = 0;
 
 	/* switch PLL on */
 	OSCTUNEbits.PLLEN = 1;
@@ -314,15 +314,14 @@ main(void)
 	fprintf(STREAM_USER, BUILD);
 #undef BUILD
 	flushtx();
-	PORTBbits.RB3 = 0;
+	LATBbits.LATB3 = 0;
 
 	/* initialize USB */
 	UCFG = _UPUEN| _FSEN | 0 /* MODE_PP */;
 	deviceState = DETACHED;
 	remoteWakeup = 0x00;
 	currentConfiguration = 0x00;
-
-	PORTBbits.RB3 = 0;
+	LATBbits.LATB3 = 1;
 
 	while(1) {
 		__asm__("clrwdt");
