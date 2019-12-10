@@ -63,6 +63,15 @@ else(MONITOR)
   find_library(LIBUSB_LIBRARY
      NAMES usb-1.0
      PATH_SUFFIXES "lib" "lib32" "lib64")
+  SET(DRVHDRS
+    lv_drivers/display/edisplay.h
+    lv_drivers/indev/edisplay_buttons.h
+  )
+  SET(DRVSRCS
+    lv_drivers/display/edisplay.c
+    lv_drivers/indev/edisplay_buttons.c
+    lv_edisplay/hal_edisplay.c
+  )
 endif(MONITOR)
 
 set (CMAKE_CXX_STANDARD 11)

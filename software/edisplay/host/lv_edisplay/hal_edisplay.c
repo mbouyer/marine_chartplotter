@@ -25,9 +25,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "lvgl/lvgl.h"
-#include "lv_drivers/display/monitor.h"
-#include "lv_drivers/indev/mouse.h"
-#include "lv_drivers/indev/mousewheel.h"
+#include "lv_drivers/display/edisplay.h"
+#include "lv_drivers/indev/edisplay_buttons.h"
 #include "hal.h"
 
 /**
@@ -35,8 +34,7 @@
  */
 void hal_init(lv_group_t *encg)
 {
-    /* Use the 'monitor' driver which creates window on PC's monitor to simulate a display*/
-    monitor_init();
+    edisplay_init();
 
     /*Create a display buffer*/
     static lv_disp_buf_t disp_buf1;
@@ -47,23 +45,32 @@ void hal_init(lv_group_t *encg)
     lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);            /*Basic initialization*/
     disp_drv.buffer = &disp_buf1;
-    disp_drv.flush_cb = monitor_flush;    /*Used when `LV_VDB_SIZE != 0` in lv_conf.h (buffered drawing)*/
+    disp_drv.flush_cb = edisplay_flush;
+    disp_drv.set_px_cb = edisplay_set_px;
+    disp_drv.rounder_cb = edisplay_rounder;
     lv_disp_drv_register(&disp_drv);
 
-    /* Add the mouse as input device
-     * Use the 'mouse' driver which reads the PC's mouse*/
-    mouse_init();
-    lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);          /*Basic initialization*/
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = mouse_read;         /*This function will be called periodically (by the library) to get the mouse position and state*/
-    lv_indev_t * mouse_indev = lv_indev_drv_register(&indev_drv);
+    /* add buttons as input device */
+    edisplay_buttons_init();
 
-    mousewheel_init();
+    lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_BUTTON;
+    indev_drv.read_cb = edisplay_buttons_read;
+    lv_indev_t * buttons_indev = lv_indev_drv_register(&indev_drv);
+
+    static const lv_point_t points_array[] = {
+	{2, 2},
+	{2, LV_VER_RES_MAX -2},
+	{LV_HOR_RES_MAX - 2, LV_VER_RES_MAX -2},
+	{LV_HOR_RES_MAX -2, 2},
+    };
+    lv_indev_set_button_points(buttons_indev, points_array);
+
     lv_indev_drv_t indev_enc_drv;
     lv_indev_drv_init(&indev_enc_drv);
     indev_enc_drv.type = LV_INDEV_TYPE_ENCODER;
-    indev_enc_drv.read_cb = mousewheel_read;
+    indev_enc_drv.read_cb = edisplay_encoder_read;
     lv_indev_t * indev_enc = lv_indev_drv_register(&indev_enc_drv);
     lv_indev_set_group(indev_enc, encg);
 }

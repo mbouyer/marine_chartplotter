@@ -21,33 +21,7 @@
  *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  *  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+void edisplay_buttons_init(void);
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <iostream>
-#include "N2K/NMEA2000.h"
-#include "N2K/nmea2000_defs_tx.h"
-#include "lv_edisplay/edisplay.h"
-
-static nmea2000 *n2kp;
-
-static void
-usage(void)
-{
-	std::cerr << "usage: " << getprogname() << " <canif>" << std::endl;
-	exit(1);
-}
-
-
-int main(int argc, char ** argv)
-{
-	if (argc != 2) {
-		usage();
-	}
-	edisplay_app_init();
-	n2kp = new nmea2000(argv[1]);
-	n2kp->Init();
-	edisplay_app_run();
-	exit(0);
-}
+bool edisplay_buttons_read(lv_indev_drv_t *, lv_indev_data_t *);
+bool edisplay_encoder_read(lv_indev_drv_t *, lv_indev_data_t *);
