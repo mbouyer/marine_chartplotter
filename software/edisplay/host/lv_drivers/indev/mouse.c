@@ -7,7 +7,6 @@
  *      INCLUDES
  *********************/
 #include "mouse.h"
-#if USE_MOUSE != 0
 
 /*********************
  *      DEFINES
@@ -94,5 +93,3 @@ void mouse_handler(SDL_Event * event)
 /**********************
  *   STATIC FUNCTIONS
  **********************/
-
-#endif

@@ -7,7 +7,6 @@
  *      INCLUDES
  *********************/
 #include "monitor.h"
-#if USE_MONITOR
 
 #ifndef MONITOR_SDL_INCLUDE_PATH
 #  define MONITOR_SDL_INCLUDE_PATH <SDL2/SDL.h>
@@ -18,7 +17,6 @@
 #include <string.h>
 #include MONITOR_SDL_INCLUDE_PATH
 #include "../indev/mouse.h"
-#include "../indev/keyboard.h"
 #include "../indev/mousewheel.h"
 
 /*********************
@@ -340,9 +338,6 @@ static void monitor_sdl_refr_core(void)
         mousewheel_handler(&event);
 #endif
 
-#if USE_KEYBOARD
-        keyboard_handler(&event);
-#endif
         if((&event)->type == SDL_WINDOWEVENT) {
             switch((&event)->window.event) {
 #if SDL_VERSION_ATLEAST(2, 0, 5)
@@ -411,5 +406,3 @@ static void window_update(monitor_t * m)
     SDL_RenderCopy(m->renderer, m->texture, NULL, NULL);
     SDL_RenderPresent(m->renderer);
 }
-
-#endif /*USE_MONITOR*/

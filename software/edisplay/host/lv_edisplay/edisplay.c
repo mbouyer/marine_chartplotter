@@ -10,7 +10,7 @@
 #include "lvgl/lvgl.h"
 #include "edisplay.h"
 #include "edisplay_font.h"
-#include "hal_sdl.h"
+#include "hal.h"
 #include "lv_drivers/indev/mousewheel.h"
 
 static void page_list(void);
@@ -430,26 +430,18 @@ void
 edisplay_init(void)
 {
 	int i;
+
 	lv_init();
-	hal_init();
+
+	encg = lv_group_create();
+	lv_group_set_refocus_policy(encg, LV_GROUP_REFOCUS_POLICY_PREV);
+
+	hal_init(encg);
 
 	lv_coord_t hres = lv_disp_get_hor_res(NULL);
 	lv_coord_t vres = lv_disp_get_ver_res(NULL);
 	lv_theme_t * th = lv_theme_mono_init(20, NULL);
 	lv_theme_set_current(th);
-
-	encg = lv_group_create();
-	lv_group_set_refocus_policy(encg, LV_GROUP_REFOCUS_POLICY_PREV);
-
-	/* Add the mouse as input device
-	 * Use the 'mouse' driver which reads the PC's mouse*/
-	mousewheel_init();
-	lv_indev_drv_t indev_enc_drv;
-	lv_indev_drv_init(&indev_enc_drv);
-	indev_enc_drv.type = LV_INDEV_TYPE_ENCODER;
-	indev_enc_drv.read_cb = mousewheel_read;
-	lv_indev_t * indev_enc = lv_indev_drv_register(&indev_enc_drv);
-	lv_indev_set_group(indev_enc, encg);
 
 	static lv_style_t style_small_text;
 	lv_style_copy(&style_small_text, &lv_style_transp_tight);

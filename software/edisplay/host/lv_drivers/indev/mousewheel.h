@@ -21,8 +21,6 @@ extern "C" {
 #endif
 #endif
 
-#if USE_MOUSEWHEEL
-
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
 #include "lvgl.h"
 #else
@@ -69,8 +67,6 @@ void mousewheel_handler(SDL_Event *event);
 /**********************
  *      MACROS
  **********************/
-
-#endif /*USE_MOUSEWHEEL*/
 
 #ifdef __cplusplus
 } /* extern "C" */

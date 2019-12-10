@@ -7,7 +7,6 @@
  *      INCLUDES
  *********************/
 #include "mousewheel.h"
-#if USE_MOUSEWHEEL
 
 /*********************
  *      DEFINES
@@ -96,5 +95,3 @@ void mousewheel_handler(SDL_Event * event)
 /**********************
  *   STATIC FUNCTIONS
  **********************/
-
-#endif

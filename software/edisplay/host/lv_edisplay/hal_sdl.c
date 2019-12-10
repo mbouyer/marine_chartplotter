@@ -4,12 +4,12 @@
 #include "lv_drivers/display/monitor.h"
 #include "lv_drivers/indev/mouse.h"
 #include "lv_drivers/indev/mousewheel.h"
-#include "lv_drivers/indev/keyboard.h"
+#include "hal.h"
 
 /**
  * Initialize the Hardware Abstraction Layer (HAL) for the Littlev graphics library
  */
-void hal_init(void)
+void hal_init(lv_group_t *encg)
 {
     /* Use the 'monitor' driver which creates window on PC's monitor to simulate a display*/
     monitor_init();
@@ -35,4 +35,11 @@ void hal_init(void)
     indev_drv.read_cb = mouse_read;         /*This function will be called periodically (by the library) to get the mouse position and state*/
     lv_indev_t * mouse_indev = lv_indev_drv_register(&indev_drv);
 
+    mousewheel_init();
+    lv_indev_drv_t indev_enc_drv;
+    lv_indev_drv_init(&indev_enc_drv);
+    indev_enc_drv.type = LV_INDEV_TYPE_ENCODER;
+    indev_enc_drv.read_cb = mousewheel_read;
+    lv_indev_t * indev_enc = lv_indev_drv_register(&indev_enc_drv);
+    lv_indev_set_group(indev_enc, encg);
 }

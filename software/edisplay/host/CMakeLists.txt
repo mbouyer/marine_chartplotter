@@ -43,14 +43,28 @@ SET(CMAKE_MODULE_PATH
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(SDL2 REQUIRED SDL2)
+if (MONITOR) 
+  find_package(SDL2 REQUIRED SDL2)
+  SET(DRVHDRS
+    lv_drivers/display/monitor.h
+    lv_drivers/indev/mouse.h
+    lv_drivers/indev/mousewheel.h
+  )
+  SET(DRVSRCS
+    lv_drivers/display/monitor.c
+    lv_drivers/indev/mouse.c
+    lv_drivers/indev/mousewheel.c
+    lv_edisplay/hal_sdl.c
+  )
+else(MONITOR)
+  find_path(LIBUSB_INCLUDE_DIR
+    NAMES libusb.h
+    PATH_SUFFIXES "include" "libusb" "libusb-1.0")
+  find_library(LIBUSB_LIBRARY
+     NAMES usb-1.0
+     PATH_SUFFIXES "lib" "lib32" "lib64")
+endif(MONITOR)
 
-find_path(LIBUSB_INCLUDE_DIR
-  NAMES libusb.h
-  PATH_SUFFIXES "include" "libusb" "libusb-1.0")
-find_library(LIBUSB_LIBRARY
-   NAMES usb-1.0
-   PATH_SUFFIXES "lib" "lib32" "lib64")
 set (CMAKE_CXX_STANDARD 11)
 
 SET(PKGINC /usr/pkg/include)
@@ -78,12 +92,6 @@ SET(N2KHDRS
 )
 
 SET(LVHDRS
-    lv_drivers/display/monitor.h
-    lv_drivers/indev/evdev.h
-    lv_drivers/indev/keyboard.h
-    lv_drivers/indev/libinput_drv.h
-    lv_drivers/indev/mouse.h
-    lv_drivers/indev/mousewheel.h
     lvgl/lvgl.h
     lvgl/src/lv_conf_checker.h
     lvgl/src/lv_core/lv_disp.h
@@ -167,9 +175,6 @@ SET(LVHDRS
     lvgl/src/lv_themes/lv_theme_templ.h
     lvgl/src/lv_themes/lv_theme_zen.h
     lvgl/src/lv_version.h
-    lv_edisplay/edisplay.h
-    lv_edisplay/edisplay_data.h
-    lv_edisplay/hal_sdl.h
     lv_conf.h
     lv_drv_conf.h
 )
@@ -177,6 +182,8 @@ SET(LVHDRS
 SET(HDRS
     ${LVHDRS}
     ${N2KHDRS}
+    ${DRVHDRS}
+    lv_edisplay/hal.h
 )
 
 SET(N2KSRCS
@@ -187,7 +194,6 @@ SET(N2KSRCS
 
 SET(LVSRCS
     lv_edisplay/edisplay.c
-    lv_edisplay/hal_sdl.c
     lv_edisplay/font_lib16.c
     lv_edisplay/font_lib24.c
     lvgl/src/lv_core/lv_group.c
@@ -264,18 +270,15 @@ SET(LVSRCS
     lvgl/src/lv_draw/lv_draw_triangle.c
     lvgl/src/lv_draw/lv_img_decoder.c
     lvgl/src/lv_draw/lv_img_cache.c
-    lv_drivers/display/monitor.c
-    lv_drivers/display/monitor.c
-    lv_drivers/indev/mouse.c
-    lv_drivers/indev/mousewheel.c
 )
 
 SET(SRCS
     main.cpp
     ${LVSRCS}
     ${N2KSRCS}
+    ${DRVSRCS}
 )
 
 SET( PACKAGE_HEADERS "" )
 ADD_EXECUTABLE(${PACKAGE_NAME} ${HDRS} ${SRCS})
-TARGET_LINK_LIBRARIES(${PACKAGE_NAME} SDL2 Threads::Threads ${LIBUSB_LIBRARY})
+TARGET_LINK_LIBRARIES(${PACKAGE_NAME} ${SDL2_LIBRARIES} Threads::Threads ${LIBUSB_LIBRARY})

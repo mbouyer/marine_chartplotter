@@ -21,8 +21,6 @@ extern "C" {
 #endif
 #endif
 
-#if USE_MOUSE
-
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
 #include "lvgl.h"
 #else
@@ -68,8 +66,6 @@ void mouse_handler(SDL_Event *event);
 /**********************
  *      MACROS
  **********************/
-
-#endif /* USE_MOUSE */
 
 #ifdef __cplusplus
 } /* extern "C" */
