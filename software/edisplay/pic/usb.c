@@ -589,7 +589,7 @@ ProcessStandardRequest(void)
 	}
 	else if (request == SET_CONFIGURATION) {
 #if DBUG_LEVL >= DBUG_UDAT
-		printf("SET_CONFIGURATION\r\n");
+		printf("SET_CONFIGURATION %d\r\n", SetupPacket.wValue0);
 #endif
 		requestHandled = 1;
 		currentConfiguration = SetupPacket.wValue0;
@@ -729,7 +729,8 @@ SetupStage(void)
 	 // See if this is a standard (as definded in USB chapter 9) request
 	 ProcessStandardRequest();
 	 // See if the VENDOR class can do something with it.
-	 ProcessVENDORRequest();
+	 if (!requestHandled)
+		ProcessVENDORRequest();
 	 // TBD: Add handlers for any other classes/interfaces in the device
 	 if (!requestHandled) {
 		 // If this service wasn't handled then stall endpoint 0
@@ -860,7 +861,7 @@ EnableUSBModule(void)
 		UIE = 0;
 		UCONbits.USBEN = 1;
 		deviceState = ATTACHED;
-#if DBUG_LEVL >= DBUG_TXN
+#if DBUG_LEVL >= DBUG_UTXN
 		printf("EnabUSBM() DvState DETA <= ATTA UCON.Enab <= 1 UCON:x%hx \r\n", (byte)UCON);
 #endif
 	}

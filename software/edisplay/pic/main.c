@@ -336,7 +336,7 @@ main(void)
 		EnableUSBModule();  /* enable usb  */
 		/* As long as we aren't in test mode (UTEYE), process */
 	       /* USB transactions. */
-		if(UCFGbits.UTEYE != 1)
+		if(UCFGbits.UTEYE == 0)
 			ProcessUSBTransactions();
 		/* Application specific tasks      */
 
@@ -344,8 +344,7 @@ main(void)
 		{
 			if (DMACON1bits.DMAEN == 0) {
 				CS0 = 1;
-				rb = VENDORRxBulk();
-				if(rb != 0) {
+				if ((rb = VENDORRxBulk()) != 0) {
 					CS0 = 0;
 					CD=DATA;
 					DMACON1 = 0x24; /* auto-inc, half duplex TX */
@@ -360,13 +359,8 @@ main(void)
 						TXADDRL = ((int)VENDORRxBufferB1 & 0xff);
 					}
 					DMACON1bits.DMAEN = 1;
-				}
-			}
-			if (DMACON1bits.DMAEN == 0) {
-				CS0 = 1;
-				rr = VENDORRxReport(rxBuffer,
-				    VENDOR_OUTPUT_INTR_BYTES);    /* read data from interrupt */
-				if(rr != 0) {
+				} else if ((rr = VENDORRxReport(rxBuffer,
+				    VENDOR_OUTPUT_INTR_BYTES)) != 0) {
 					if(rxBuffer[0]==0){ /* PIC command */
 						if(rxBuffer[1]==1){
 							LATBbits.LATB3 = 1;
@@ -389,7 +383,6 @@ main(void)
 				}
 			}
 			if (softintrs & INT_ST_CH) {
-				printf("report %x\n", ad_result);
 				INTCONbits.GIE_GIEH=0;  /* disable interrupts */
 				comm_status.buttons = buttons_status.v;
 				comm_status.rot_pos += rotary_pos;
