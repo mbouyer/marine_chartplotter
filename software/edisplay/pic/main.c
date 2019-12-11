@@ -310,7 +310,7 @@ main(void)
 	WDTCON = 0x01;
 
 #include "version.h"
-	fprintf(STREAM_USER, "\nthermoUSB v%x.%x", REV_MAJOR, REV_MINOR);
+	fprintf(STREAM_USER, "\nedisplay v%x.%x", REV_MAJOR, REV_MINOR);
 	fprintf(STREAM_USER, BUILD);
 #undef BUILD
 	flushtx();

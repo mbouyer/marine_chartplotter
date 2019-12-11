@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "usb.h"
+#include "version.h"
 
 #define ALLOW_SUSPEND 0
 
@@ -87,7 +88,7 @@ const byte deviceDescriptor[] =
 	0xff, E0SZ, // bDeviceProtocl, bMaxPacketSize
 	0xD8, 0x04, // idVendor (low byte), idVendor (high byte)
 	0x41, 0x45, // idProduct (low byte), idProduct (high byte)
-	0x01, 0x00, // bcdDevice (low byte), bcdDevice (high byte)
+	REV_MINOR, REV_MAJOR, // bcdDevice (low byte), bcdDevice (high byte)
 	0x01, 0x02, // iManufacturer, iProduct
 	0x00, 0x01  // iSerialNumber (none), bNumConfigurations
 };
@@ -116,7 +117,7 @@ const ConfigStruct configDescriptor =
 		0x07, 0x05, // bLength, bDescriptorType (Endpoint)
 		0x81, 0x03, // bEndpointAddress, bmAttributes (Interrupt)
 		VENDOR_INPUT_INTR_BYTES, 0x00, // wMaxPacketSize (low), wMaxPacketSize (high)
-		0x01,	 // bInterval (1 millisecond)
+		0x0a,	 // bInterval (10 millisecond)
 		// VENDOR Endpoint 1 Out
 		0x07, 0x05, // bLength, bDescriptorType (Endpoint)
 		0x01, 0x03, // bEndpointAddress, bmAttributes (Interrupt)
@@ -138,17 +139,17 @@ const byte stringDescriptor0[] =
 
 const byte stringDescriptor1[] =
 {
-	0x0E, STRING_DESCRIPTOR, // bLength, bDscType
-	'X', 0x00, 'a', 0x00, 'n', 0x00, 'd', 0x00,
-	'e', 0x00, 'r', 0x00,
+	0x16, STRING_DESCRIPTOR, // bLength, bDscType
+	'M', 0x00, 'B', 0x00, ' ', 0x00, 'd', 0x00,
+	'e', 0x00, 'v', 0x00, 'i', 0x00, 'c', 0x00,
+	'e', 0x00, 's', 0x00,
 };
 const byte stringDescriptor2[] =
 {
-	0x20, STRING_DESCRIPTOR,
+	0x1a, STRING_DESCRIPTOR,
 	'U', 0x00, 'S', 0x00, 'B', 0x00, ' ', 0x00,
-	'G', 0x00, 'e', 0x00, 'n', 0x00, 'e', 0x00,
-	'r', 0x00, 'i', 0x00, 'c', 0x00, ' ', 0x00,
-	'H', 0x00, 'I', 0x00, 'D', 0x00,
+	'e', 0x00, 'D', 0x00, 'i', 0x00, 's', 0x00,
+	'p', 0x00, 'l', 0x00, 'a', 0x00, 'y', 0x00,
 };
 
 volatile BDT __at(BDT_BASE + 0x00) ep0Bo;					//Endpoint #0 BD Out
