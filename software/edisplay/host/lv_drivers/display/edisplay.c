@@ -95,8 +95,7 @@ edisplay_send_command_raw(edisplay_ctx_t *ctx, char *buf, int size)
 	    (USB_EP_CMD | LIBUSB_ENDPOINT_OUT), buf, size, &s, USB_TIMEOUT);
 	if (r != 0) {
 		warnx("libusb_interrupt_transfer OUT: error %d", r);
-		if (r == LIBUSB_ERROR_NO_DEVICE)
-			ctx->edctx_fail++;
+		ctx->edctx_fail++;
 	} else if (size != s) {
 		warnx("libusb_interrupt_transfer OUT: size %d %d", size, s);
 	}
@@ -132,8 +131,7 @@ edisplay_send_data(char *buf, int size)
 	    (USB_EP_DATA | LIBUSB_ENDPOINT_OUT), buf, size, &s, USB_TIMEOUT);
 	if (r != 0) {
 		warnx("libusb_bulk OUT: error %d", r);
-		if (r == LIBUSB_ERROR_NO_DEVICE)
-			ctx->edctx_fail++;
+		ctx->edctx_fail++;
 	} else if (size != s) {
 		warnx("libusb_bulk OUT: size %d %d", size, s);
 	}
@@ -184,7 +182,7 @@ edisplay_send_data(char *buf, int size)
 #define UC1610_SET_WP_STARTING_PA           0xF5      /* 1 byte to follow for page address   */
 #define UC1610_SET_WP_ENDING_PA             0xF7      /* 1 byte to follow for page address   */
 
-#define UC1610_INIT_CONTRAST 0x80 /* default value */
+#define UC1610_INIT_CONTRAST 0x5f /* default value */
 
 static uint8_t cmd_buf[12];
 
@@ -192,7 +190,8 @@ static uint8_t cmd_buf[12];
 #define PIXIDX(y, c)	((c) << (((y) & 3) << 1))
 
 static void
-uc1610_init(edisplay_ctx_t *ctx) {
+uc1610_init(edisplay_ctx_t *ctx)
+{
 	/* initialization sequence */
 	cmd_buf[0]  = UC1610_SYSTEM_RESET;								 /* software reset */
 	edisplay_send_command_raw(ctx, cmd_buf, 1);
@@ -203,7 +202,9 @@ uc1610_init(edisplay_ctx_t *ctx) {
 	cmd_buf[3]  = UC1610_SET_LCD_BIAS_RATIO;
 	cmd_buf[4]  = UC1610_SET_VBIAS_POT;								/* set contrast */
 	cmd_buf[5]  = UC1610_INIT_CONTRAST;
-	cmd_buf[6]  = UC1610_SET_MAPPING_CONTROL;	/* bottom view */
+	cmd_buf[6]  = UC1610_SET_MAPPING_CONTROL         | /* top view */
+		      UC1610_SET_MAPPING_CONTROL_MY_FLAG |
+		      UC1610_SET_MAPPING_CONTROL_MX_FLAG;
 	cmd_buf[7]  = UC1610_SET_SCROLL_LINES_LSB | 0; /* set scroll line on line 0 */
 	cmd_buf[8]  = UC1610_SET_SCROLL_LINES_MSB | 0;
 	cmd_buf[9]  = UC1610_SET_AC | UC1610_AC_WA_FLAG; /* set auto increment wrap around */
@@ -211,6 +212,7 @@ uc1610_init(edisplay_ctx_t *ctx) {
 	cmd_buf[11] = UC1610_SET_DISPLAY_ENABLE	 | 1; /* turn display on */
 
 	edisplay_send_command_raw(ctx, cmd_buf, 12);
+	lv_event_send(lv_disp_get_layer_top(NULL), LV_EVENT_REFRESH, NULL);
 }
 
 void

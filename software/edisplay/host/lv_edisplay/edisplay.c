@@ -141,6 +141,9 @@ static void back_click_action(lv_obj_t * obj, lv_event_t event)
 	case LV_EVENT_SHORT_CLICKED:
 		page_list();
 		return;
+	case LV_EVENT_REFRESH:
+		lv_scr_load(pages[current_page]);
+		return;
 	}
 	   printf("back event ");
 	   print_ev(event);

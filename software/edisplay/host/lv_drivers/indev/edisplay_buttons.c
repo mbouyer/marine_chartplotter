@@ -73,13 +73,11 @@ edisp_input(void *a)
 		read =  0;
 		r = libusb_interrupt_transfer(ctx->edctx_dev,
 		    (USB_EP | LIBUSB_ENDPOINT_IN), buf, 64, &read, 0);
+		edisplay_put(ctx);
 		if (r != 0) {
 			warnx("libusb_interrupt_transfer IN: error %d", r);
-			if (r == LIBUSB_ERROR_NO_DEVICE)
-				ctx->edctx_fail++;
-		}
-		edisplay_put(ctx);
-		if (read > 0) {
+			sleep(1);
+		} else if (read > 0) {
 			pthread_mutex_lock(&edispi_mtx);
 			if (read == 2)
 				edisp_enc_diff += (int)buf[1];
