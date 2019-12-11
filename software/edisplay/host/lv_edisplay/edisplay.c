@@ -30,7 +30,6 @@
 #include "edisplay.h"
 #include "edisplay_font.h"
 #include "hal.h"
-#include "lv_drivers/indev/mousewheel.h"
 
 static void page_list(void);
 static void light_slide(void);
