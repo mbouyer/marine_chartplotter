@@ -62,7 +62,7 @@ edisp_input(void *a)
 {
 	edisplay_ctx_t *ctx;
 	int read, r;
-	char buf[64];
+	signed char buf[64];
 
 	while (1) {
 		ctx = edisplay_get();
@@ -82,8 +82,8 @@ edisp_input(void *a)
 		if (read > 0) {
 			pthread_mutex_lock(&edispi_mtx);
 			if (read == 2)
-				edisp_enc_diff += buf[1];
-			edisp_buttons_ev |= buf[1];
+				edisp_enc_diff += (int)buf[1];
+			edisp_buttons_ev = buf[0];
 			pthread_mutex_unlock(&edispi_mtx);
 		}
 	}
@@ -100,7 +100,6 @@ edisplay_buttons_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 		if (edisp_buttons_ev & (1 << i)) {
 			last_button = i;
 			data->state = LV_INDEV_STATE_PR;
-			edisp_buttons_ev &= ~(1 << i);
 			break;
 		}
 	}
@@ -114,8 +113,7 @@ edisplay_encoder_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 {
 	static int last_button = 0;
 	pthread_mutex_lock(&edispi_mtx);
-	if (edisp_buttons_ev & (1 << 5)) {
-		edisp_buttons_ev &= ~(1 << 5);
+	if (edisp_buttons_ev & (1 << 4)) {
 		data->state = LV_INDEV_STATE_PR;
 	} else {
 		data->state = LV_INDEV_STATE_REL;
