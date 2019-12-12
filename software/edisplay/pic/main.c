@@ -99,8 +99,15 @@ unsigned char ad_result;
 #define ROTARY_A PORTBbits.RB4        /* Encoder A Pin */
 #define ROTARY_B PORTBbits.RB5        /* Encoder B Pin */
 
+#define LED_OUT LATBbits.LATB3
+#define LED_PWM CCPR2L
+#define BACKLIGHT_OUT LATBbits.LATB2
+#define BACKLIGHT_PWM CCPR1L
+
 static struct comm_status comm_status;
-char rxBuffer[VENDOR_OUTPUT_INTR_BYTES];
+static char rxBuffer[VENDOR_OUTPUT_INTR_BYTES];
+
+#define RCMD ((struct comm_command *)rxBuffer)
 
 char uart_txbuf[UART_BUFSIZE];
 unsigned char uart_txbuf_prod, uart_txbuf_cons;
@@ -170,6 +177,55 @@ process_char(char c) __wparam
 	}
 }
 
+static inline void
+checkrx(void)
+{
+	CS0 = 1;
+	if ((rb = VENDORRxBulk()) != 0) {
+		CS0 = 0;
+		CD=DATA;
+		DMACON1 = 0x24; /* auto-inc, half duplex TX */
+		DMACON2 = 0x00; /* 1 Tcy inter-byte delay */
+		DMABCH = 0;
+		DMABCL = ((rb & 0xff) - 1);
+		if ((rb & 0x100) == 0) {
+			TXADDRH = ((int)VENDORRxBufferB0 >> 8);
+			TXADDRL = ((int)VENDORRxBufferB0 & 0xff);
+		} else {
+			TXADDRH = ((int)VENDORRxBufferB1 >> 8);
+			TXADDRL = ((int)VENDORRxBufferB1 & 0xff);
+		}
+		DMACON1bits.DMAEN = 1;
+	} else if ((rr = VENDORRxReport(rxBuffer,
+	    VENDOR_OUTPUT_INTR_BYTES)) != 0) {
+		if(rxBuffer[0]==0){ /* PIC command */
+			if (rr != sizeof(struct comm_command))
+				return;
+			if (RCMD->flags & FL_LED) {
+				LED_PWM = RCMD->led_dim;
+			} else {
+				LED_PWM = 0;
+			}
+			if (RCMD->flags & FL_BACKLIGHT) {
+				BACKLIGHT_PWM = RCMD->backlight_dim;
+			} else {
+				BACKLIGHT_PWM = 0;
+			}
+		} else {
+			CS0 = 0;
+			CD=COMMAND; /* LCD command */
+			DMACON1 = 0x24; /* auto-inc, half duplex TX */
+			DMACON2 = 0x00; /* 1 Tcy inter-byte delay */
+			DMABCH = 0;
+			DMABCL = (rr - 1);
+			TXADDRH = ((int)rxBuffer >> 8);
+			TXADDRL = ((int)rxBuffer & 0xff);
+			DMACON1bits.DMAEN = 1;
+		}
+
+	}
+}
+
 void
 main(void)
 {
@@ -192,8 +248,11 @@ main(void)
 	ANCON0 = 0xf0; /* an0-an3 analog, an4-an7 digital */
 	ANCON1 = 0x3f; /* an8-12 digital */
 
-	LATBbits.LATB3 = 0;
+	LED_OUT = 0;
 	TRISBbits.TRISB3 = 0;
+
+	BACKLIGHT_OUT = 0;
+	TRISBbits.TRISB2 = 0;
 
 	/* switch PLL on */
 	OSCTUNEbits.PLLEN = 1;
@@ -220,6 +279,8 @@ main(void)
     	RPOR0= 11;	/* map RP0 pin to spi clock output */
    	RPOR1= 10;	/* map RP1 pin to spi  data out */
 	RPINR22 = 0;	/* map SPI clock input to RP0 */
+	RPOR5 = 14; /* CCP1 output */
+	RPOR6 = 18; /* CCP2 output */
 
    	EECON2 = 0x55;
    	EECON2 = 0xAA;
@@ -270,6 +331,21 @@ main(void)
 	IPR1bits.TMR2IP = 1; /* high priority interrupt */
 	PIE1bits.TMR2IE = 1;
 
+	/* configure timer4 for for PWM, about 600Khz */
+	T4CON = 0x02; /* b00000010: prescaler 1/16 */
+	PR4 = 100; /* about 7.5Khz */
+	PIE3bits.TMR4IE = 0;
+	T4CONbits.TMR4ON = 1;
+
+	/* setup ECCP1 (backlight) and ECCP2 (LED) in PWM mode */
+	CCP1CON = 0x0c; /* PWM mode */
+	CCP2CON = 0x0c;
+	CCPTMRS0 = 0x09; /* CCP1 and CCP2 use timer4 */
+	PSTR1CON = 0x01; /* output A */
+	PSTR2CON = 0x01;
+	CCPR1L = 0;
+	CCPR2L = 0;
+
 	/* configure UART for 57600Bps at 48Mhz */
 	SPBRG2 = 12;
 
@@ -288,24 +364,6 @@ main(void)
 	ADCON0bits.CHS = 2; /*select analog input, AN2  */
 	ADCON0bits.ADON = 1; /*Turn on the ADC */
 
-#if 0
-	ADCON0 = 0xc1; /* b11000001 */
-
-	/* clk = fosc/64, tacq = 4tad (5.33us) */
-	ADCON1 = 0x96; /* b10010110 */
-
-	/* clk = fosc/64, tacq = 0tad */
-	ADCON1 = 0x86; /* b10000110 */
-
-	/* ANCON already set up */
-
-	/* start calibration */
-	ADCON1bits.ADCAL = 1;
-	ADCON0bits.GO_NOT_DONE =1;
-	while (ADCON0bits.GO_NOT_DONE)
-	  ; /* wait */
-	ADCON1bits.ADCAL = 0;
-#endif
 	/* enable watch dog timer */
 	WDTCON = 0x01;
 
@@ -314,14 +372,13 @@ main(void)
 	fprintf(STREAM_USER, BUILD);
 #undef BUILD
 	flushtx();
-	LATBbits.LATB3 = 0;
 
 	/* initialize USB */
 	UCFG = _UPUEN| _FSEN | 0 /* MODE_PP */;
 	deviceState = DETACHED;
 	remoteWakeup = 0x00;
 	currentConfiguration = 0x00;
-	LATBbits.LATB3 = 1;
+	LED_PWM = 100;
 
 	while(1) {
 		__asm__("clrwdt");
@@ -343,44 +400,7 @@ main(void)
 		if ((deviceState >= CONFIGURED) && (UCONbits.SUSPND==0))
 		{
 			if (DMACON1bits.DMAEN == 0) {
-				CS0 = 1;
-				if ((rb = VENDORRxBulk()) != 0) {
-					CS0 = 0;
-					CD=DATA;
-					DMACON1 = 0x24; /* auto-inc, half duplex TX */
-					DMACON2 = 0x00; /* 1 Tcy inter-byte delay */
-					DMABCH = 0;
-					DMABCL = ((rb & 0xff) - 1);
-					if ((rb & 0x100) == 0) {
-						TXADDRH = ((int)VENDORRxBufferB0 >> 8);
-						TXADDRL = ((int)VENDORRxBufferB0 & 0xff);
-					} else {
-						TXADDRH = ((int)VENDORRxBufferB1 >> 8);
-						TXADDRL = ((int)VENDORRxBufferB1 & 0xff);
-					}
-					DMACON1bits.DMAEN = 1;
-				} else if ((rr = VENDORRxReport(rxBuffer,
-				    VENDOR_OUTPUT_INTR_BYTES)) != 0) {
-					if(rxBuffer[0]==0){ /* PIC command */
-						if(rxBuffer[1]==1){
-							LATBbits.LATB3 = 1;
-						}
-						if(rxBuffer[1]==0){
-							LATBbits.LATB3 = 0;
-						}
-					} else {
-						CS0 = 0;
-						CD=COMMAND; /* LCD command */
-						DMACON1 = 0x24; /* auto-inc, half duplex TX */
-						DMACON2 = 0x00; /* 1 Tcy inter-byte delay */
-						DMABCH = 0;
-						DMABCL = (rr - 1);
-						TXADDRH = ((int)rxBuffer >> 8);
-						TXADDRL = ((int)rxBuffer & 0xff);
-						DMACON1bits.DMAEN = 1;
-					}
-
-				}
+				checkrx();
 			}
 			if (softintrs & INT_ST_CH) {
 				INTCONbits.GIE_GIEH=0;  /* disable interrupts */

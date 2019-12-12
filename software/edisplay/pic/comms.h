@@ -43,5 +43,13 @@ struct comm_status {
 	signed char rot_pos;
 };
 
+struct comm_command {
+	char zero;
+	unsigned char flags;
+#define FL_LED		0x01
+#define FL_BACKLIGHT	0x02
+	unsigned char led_dim;
+	unsigned char backlight_dim;
+};
 
 #endif	/* COMMS_H */
