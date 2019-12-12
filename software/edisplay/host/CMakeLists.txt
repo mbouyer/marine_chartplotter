@@ -66,6 +66,7 @@ else(MONITOR)
   SET(DRVHDRS
     lv_drivers/display/edisplay.h
     lv_drivers/indev/edisplay_buttons.h
+    ../pic/comms.h
   )
   SET(DRVSRCS
     lv_drivers/display/edisplay.c

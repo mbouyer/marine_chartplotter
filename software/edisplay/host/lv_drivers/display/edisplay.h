@@ -45,6 +45,8 @@ void edisplay_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t
 void edisplay_set_px(lv_disp_drv_t *, uint8_t *, lv_coord_t, lv_coord_t, lv_coord_t, lv_color_t, lv_opa_t);
 void edisplay_rounder(lv_disp_drv_t *, lv_area_t *);
 
+void edisplay_set_backlight(bool, bool, int);
+
 
 #ifdef __cplusplus
 } /* extern "C" */

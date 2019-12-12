@@ -29,6 +29,7 @@
 #endif
 #include "../display/edisplay.h"
 #include "edisplay_buttons.h"
+#include "../pic/comms.h"
 
 #include <libusb-1.0/libusb.h>
 #include <pthread.h>
@@ -62,8 +63,9 @@ edisp_input(void *a)
 {
 	edisplay_ctx_t *ctx;
 	int read, r;
-	signed char buf[64];
+	struct comm_status status;
 	static bool warned = 0;
+
 
 	while (1) {
 		ctx = edisplay_get();
@@ -73,7 +75,8 @@ edisp_input(void *a)
 		}
 		read =  0;
 		r = libusb_interrupt_transfer(ctx->edctx_dev,
-		    (USB_EP | LIBUSB_ENDPOINT_IN), buf, 64, &read, 0);
+		    (USB_EP | LIBUSB_ENDPOINT_IN), &status, sizeof(status),
+			&read, 0);
 		edisplay_put(ctx);
 		if (r != 0) {
 			if (!warned) {
@@ -84,11 +87,10 @@ edisp_input(void *a)
 			sleep(1);
 		} else {
 			warned = 0;
-			if (read > 0) {
+			if (read == 2) {
 				pthread_mutex_lock(&edispi_mtx);
-				if (read == 2)
-					edisp_enc_diff += (int)buf[1];
-				edisp_buttons_ev = buf[0];
+				edisp_enc_diff += status.rot_pos;
+				edisp_buttons_ev = status.buttons;
 				pthread_mutex_unlock(&edispi_mtx);
 			}
 		}

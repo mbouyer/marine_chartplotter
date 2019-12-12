@@ -3,7 +3,9 @@
  */
 
 #include "edisplay.h"
+#include "../pic/comms.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
@@ -286,4 +288,19 @@ edisplay_rounder(lv_disp_drv_t * disp_drv, lv_area_t * area) {
 	/* Round y window to display memory page size */
 	area->y1 = (area->y1 & (~3));
 	area->y2 = (area->y2 & (~3)) + 3;
+}
+
+void
+edisplay_set_backlight(bool on, bool inv, int dimm)
+{
+	struct comm_command cmd;
+
+	cmd.zero = 0;
+	cmd.flags = FL_LED | (on ? FL_BACKLIGHT : 0);
+	cmd.led_dim = on ? 1 : 100;
+	cmd.backlight_dim = dimm;
+
+	edisplay_send_command(&cmd, sizeof(cmd));
+	cmd_buf[0] = UC1610_SET_INVERSE_DISPLAY | (inv ? 0 : 1);
+	edisplay_send_command(&cmd_buf[0], 1);
 }

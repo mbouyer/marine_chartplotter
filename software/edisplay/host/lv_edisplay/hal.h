@@ -23,3 +23,4 @@
  */
 
 void hal_init(lv_group_t *encg);
+void hal_set_backlight(bool, bool, int);

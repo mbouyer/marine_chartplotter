@@ -65,6 +65,37 @@ static struct button {
 
 #define DEGSTR "°"
 
+static enum {
+	OFF = 0,
+	ON,
+	INV
+} backlight_status = ON;
+static int backlight_pwm = 50;
+
+static void
+set_backlight(void)
+{
+	switch (backlight_status) {
+	case OFF:
+		hal_set_backlight(0, 0, backlight_pwm);
+		break;
+	case ON:
+		hal_set_backlight(1, 0, backlight_pwm);
+		break;
+	case INV:
+		hal_set_backlight(1, 1, backlight_pwm);
+		break;
+	}
+}
+
+static void disp_refresh(void *p)
+{
+	if (pages[current_page] != NULL) {
+		lv_scr_load(pages[current_page]);
+		set_backlight();
+	}
+}
+
 static void
 print_ev(lv_event_t event)
 {
@@ -142,12 +173,11 @@ static void back_click_action(lv_obj_t * obj, lv_event_t event)
 		page_list();
 		return;
 	case LV_EVENT_REFRESH:
-		if (pages[current_page] != NULL)
-			lv_scr_load(pages[current_page]);
+		lv_async_call(disp_refresh, NULL);
 		return;
 	}
-	   printf("back event ");
-	   print_ev(event);
+	printf("back event ");
+	print_ev(event);
 	printf("\n");
 }
 
@@ -167,6 +197,20 @@ btn2_click_action(lv_obj_t * btn, lv_event_t event)
 	   switch(event) {
 	   case LV_EVENT_LONG_PRESSED:
 		light_slide();
+		return;
+	   case LV_EVENT_SHORT_CLICKED:
+		switch (backlight_status) {
+		case OFF:
+			backlight_status = ON;
+			break;
+		case ON:
+			backlight_status = INV;
+			break;
+		case INV:
+			backlight_status = OFF;
+			break;
+		}
+		set_backlight();
 		return;
 	   }
 	   printf("buttons[2].button event ");
@@ -208,8 +252,11 @@ light_action(lv_obj_t *slide, lv_event_t event)
 {
 	switch(event) {
 	case LV_EVENT_SHORT_CLICKED:
-		printf("new light %d\n", lv_slider_get_value(slide));
 		enc_group_close(slide);
+		break;
+	case LV_EVENT_VALUE_CHANGED:
+		backlight_pwm = lv_slider_get_value(slide);
+		set_backlight();
 		break;
 	default:
 		   printf("light_action: ");
@@ -223,6 +270,7 @@ light_slide(void)
 {
 	lv_obj_t *slide = lv_slider_create(lv_top_trs, NULL);
 	lv_slider_set_range(slide, 10, 100);
+	lv_slider_set_value(slide, backlight_pwm, LV_ANIM_OFF);
 	lv_obj_set_event_cb(slide, light_action);
 	lv_obj_move_foreground(slide);
 	lv_obj_align(slide, lv_top_trs, LV_ALIGN_CENTER, 0, 0);

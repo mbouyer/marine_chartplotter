@@ -74,3 +74,9 @@ void hal_init(lv_group_t *encg)
     lv_indev_t * indev_enc = lv_indev_drv_register(&indev_enc_drv);
     lv_indev_set_group(indev_enc, encg);
 }
+
+void
+hal_set_backlight(bool on, bool inv, int dimm)
+{
+	edisplay_set_backlight(on, inv, dimm);
+}
