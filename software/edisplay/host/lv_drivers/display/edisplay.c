@@ -34,6 +34,7 @@ edisplay_init(void)
 edisplay_ctx_t *
 edisplay_get(void)
 {
+	static bool warned = 0;
 	if (pthread_mutex_lock(&_edisplayctx.edctx_mtx) != 0)
 		errx(1, "get pthread_mutex_lock");
 	if (_edisplayctx.edctx_dev == NULL) {
@@ -41,7 +42,10 @@ edisplay_get(void)
 		_edisplayctx.edctx_dev = libusb_open_device_with_vid_pid(
 		    _edisplayctx.edctx_usb, 0x04d8,0x4541);
 		if (_edisplayctx.edctx_dev == NULL) {
-			warnx("edisplay USB init failed");
+			if (!warned) {
+				warnx("edisplay USB open device failed");
+				warned = 1;
+			}
 			_edisplayctx.edctx_dev = NULL;
 			pthread_mutex_unlock(&_edisplayctx.edctx_mtx);
 			return NULL;
@@ -53,6 +57,7 @@ edisplay_get(void)
 			pthread_mutex_unlock(&_edisplayctx.edctx_mtx);
 			return NULL;
 		}
+		warned = 0;
 		_edisplayctx.edctx_fail = 0;
 		uc1610_init(&_edisplayctx);
 	}

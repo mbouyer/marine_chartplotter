@@ -34,7 +34,7 @@
 static void page_list(void);
 static void light_slide(void);
 
-static lv_obj_t *pages[4];
+static lv_obj_t *pages[4] = { 0 };
 static int current_page = 0;
 
 lv_obj_t *cap_value;
@@ -142,7 +142,8 @@ static void back_click_action(lv_obj_t * obj, lv_event_t event)
 		page_list();
 		return;
 	case LV_EVENT_REFRESH:
-		lv_scr_load(pages[current_page]);
+		if (pages[current_page] != NULL)
+			lv_scr_load(pages[current_page]);
 		return;
 	}
 	   printf("back event ");

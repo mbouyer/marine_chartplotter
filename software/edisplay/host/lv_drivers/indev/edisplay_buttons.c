@@ -63,6 +63,7 @@ edisp_input(void *a)
 	edisplay_ctx_t *ctx;
 	int read, r;
 	signed char buf[64];
+	static bool warned = 0;
 
 	while (1) {
 		ctx = edisplay_get();
@@ -75,14 +76,21 @@ edisp_input(void *a)
 		    (USB_EP | LIBUSB_ENDPOINT_IN), buf, 64, &read, 0);
 		edisplay_put(ctx);
 		if (r != 0) {
-			warnx("libusb_interrupt_transfer IN: error %d", r);
+			if (!warned) {
+				warnx(
+				   "libusb_interrupt_transfer IN: error %d", r);
+				warned = 1;
+			}
 			sleep(1);
-		} else if (read > 0) {
-			pthread_mutex_lock(&edispi_mtx);
-			if (read == 2)
-				edisp_enc_diff += (int)buf[1];
-			edisp_buttons_ev = buf[0];
-			pthread_mutex_unlock(&edispi_mtx);
+		} else {
+			warned = 0;
+			if (read > 0) {
+				pthread_mutex_lock(&edispi_mtx);
+				if (read == 2)
+					edisp_enc_diff += (int)buf[1];
+				edisp_buttons_ev = buf[0];
+				pthread_mutex_unlock(&edispi_mtx);
+			}
 		}
 	}
 }
