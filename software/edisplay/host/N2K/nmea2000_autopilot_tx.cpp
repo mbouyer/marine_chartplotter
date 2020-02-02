@@ -29,10 +29,63 @@
 #include "nmea2000_defs_tx.h"
 #include "nmea2000_defs_rx.h"
 
-void
-n2k_rateofturn_tx::update(double rot, uint8_t sid)
+bool
+private_command_engage_tx::senddata(double heading, uint8_t auto_mode, uint8_t params_slot)
 {
-	uint82frame(sid, 0);
-	int322frame(rot * 1000 * 10000, 1);
+	bool ret;
+	int162frame(heading * 1000, 0);
+	uint82frame(auto_mode, 2);
+	uint82frame(params_slot, 3);
 	valid = true;
+	ret = nmea2000P->send_bypgn(PRIVATE_COMMAND_ENGAGE, true);
+	valid = false;
+	return ret;
+}
+
+bool
+private_command_errack_tx::senddata(uint8_t ack_errors)
+{
+	bool ret;
+	uint82frame(ack_errors, 0);
+	valid = true;
+	ret = nmea2000P->send_bypgn(PRIVATE_COMMAND_ERRACK, true);
+	valid = false;
+	return ret;
+}
+
+bool
+private_command_factors_tx::senddata(int8_t slot, int err, int dif, int dif2)
+{
+	bool ret;
+	int82frame(slot, 0);
+	int162frame(err, 1);
+	int162frame(dif, 3);
+	int162frame(dif2, 5);
+	valid = true;
+	ret = nmea2000P->send_bypgn(PRIVATE_COMMAND_FACTORS, true);
+	valid = false;
+	return ret;
+}
+
+bool
+private_command_factors_request_tx::senddata(int8_t slot)
+{
+	bool ret;
+	int82frame(slot, 0);
+	valid = true;
+	ret = nmea2000P->send_bypgn(PRIVATE_COMMAND_FACTORS_REQUEST, true);
+	valid = false;
+	return ret;
+}
+
+bool
+private_remote_control_tx::senddata(int8_t type, int8_t subtype)
+{
+	bool ret;
+	int82frame(type, 0);
+	int82frame(subtype, 1);
+	valid = true;
+	ret = nmea2000P->send_bypgn(PRIVATE_REMOTE_CONTROL, true);
+	valid = false;
+	return ret;
 }

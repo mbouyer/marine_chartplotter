@@ -200,6 +200,8 @@ SET(N2KSRCS
     N2K/NMEA2000.cpp
     N2K/nmea2000_rxtx.cpp
     N2K/nmea2000_data_rx.cpp
+    N2K/nmea2000_autopilot_rx.cpp
+    N2K/nmea2000_autopilot_tx.cpp
 )
 
 SET(LVSRCS

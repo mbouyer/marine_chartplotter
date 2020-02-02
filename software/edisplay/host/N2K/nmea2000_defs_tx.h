@@ -105,43 +105,47 @@ class iso_address_claim_tx : public nmea2000_frame_tx {
 	};
 };
 
-#if 0
-class n2k_attitude_tx : public nmea2000_frame_tx {
+class private_command_engage_tx : public nmea2000_frame_tx {
     public:
-	inline n2k_attitude_tx() : nmea2000_frame_tx("NMEA2000 attitude", true, NMEA2000_ATTITUDE, NMEA2000_PRIORITY_INFO, 8) { };
+	inline private_command_engage_tx() : nmea2000_frame_tx("private command engage", true, PRIVATE_COMMAND_ENGAGE, NMEA2000_PRIORITY_INFO, 4) { };
 
-	void update(double, double, double, uint8_t);
+	bool senddata(double, uint8_t, uint8_t);
 };
 
-class n2k_rateofturn_tx : public nmea2000_frame_tx {
+class private_command_errack_tx : public nmea2000_frame_tx {
     public:
-	inline n2k_rateofturn_tx() : nmea2000_frame_tx("NMEA2000 rate of turn", true, NMEA2000_RATEOFTURN, NMEA2000_PRIORITY_INFO, 8) { };
-	virtual ~n2k_rateofturn_tx() {};
-	void update(double, uint8_t);
+	inline private_command_errack_tx() : nmea2000_frame_tx("private command error ack", true, PRIVATE_COMMAND_ERRACK, NMEA2000_PRIORITY_INFO, 1) { };
+	virtual ~private_command_errack_tx() {};
+	bool senddata(uint8_t);
 };
 
-class n2k_navdata_tx : public nmea2000_fastframe_tx {
+class private_command_factors_tx : public nmea2000_frame_tx {
     public:
-	static const int navdata_size = 34;
-	inline n2k_navdata_tx() : nmea2000_fastframe_tx("NMEA2000 Navigation Data", true, NMEA2000_NAVDATA, NMEA2000_PRIORITY_INFO, navdata_size) { apb_ok = false; rmb_ok = false; current_bearing = -1;}
-	virtual ~n2k_navdata_tx() {};
-	virtual void nmeasentence(NMEA0183 *, int, uint8_t);
-	virtual void positionfix(PlugIn_Position_Fix_Ex *, int, uint8_t);
-    private:
-	bool apb_ok;
-	bool rmb_ok;
-	double current_bearing;
-	double current_sog;
+	inline private_command_factors_tx() : nmea2000_frame_tx("private command factors", true, PRIVATE_COMMAND_FACTORS, NMEA2000_PRIORITY_INFO, 8) { };
+	virtual ~private_command_factors_tx() {};
+	bool senddata(int8_t, int, int, int);
 };
 
-class n2k_xte_tx : public nmea2000_frame_tx {
+class private_command_factors_request_tx : public nmea2000_frame_tx {
     public:
-	inline n2k_xte_tx() : nmea2000_frame_tx("NMEA2000 Cross-Track Error", true, NMEA2000_XTE, NMEA2000_PRIORITY_INFO, 6) { };
-	virtual ~n2k_xte_tx() {};
-	virtual void nmeasentence(NMEA0183 *, int, uint8_t);
+	inline private_command_factors_request_tx() : nmea2000_frame_tx("private command factors request", true, PRIVATE_COMMAND_FACTORS_REQUEST, NMEA2000_PRIORITY_INFO, 1) { };
+	virtual ~private_command_factors_request_tx() {};
+	bool senddata(int8_t);
 };
-#endif
 
+class private_command_acuator_tx : public nmea2000_frame_tx {
+    public:
+	inline private_command_acuator_tx() : nmea2000_frame_tx("private command acuator", true, PRIVATE_COMMAND_ACUATOR, NMEA2000_PRIORITY_INFO, 1) { };
+	virtual ~private_command_acuator_tx() {};
+	bool senddata(int8_t);
+};
+
+class private_remote_control_tx : public nmea2000_frame_tx {
+    public:
+	inline private_remote_control_tx() : nmea2000_frame_tx("private remote control", true, PRIVATE_REMOTE_CONTROL, NMEA2000_PRIORITY_INFO, 8) { };
+	virtual ~private_remote_control_tx() {};
+	bool senddata(int8_t, int8_t);
+};
 
 class nmea2000_tx {
     public:
@@ -157,22 +161,22 @@ class nmea2000_tx {
 	nmea2000_frame_tx *get_frametx(u_int);
 
 	iso_address_claim_tx iso_address_claim;
-#if 0
-	n2k_attitude_tx n2k_attitude;
-	n2k_rateofturn_tx n2k_rateofturn;
-	n2k_navdata_tx n2k_navdata;
-	n2k_xte_tx n2k_xte;
-#endif
+	private_command_engage_tx private_command_engage;
+	private_command_errack_tx private_command_errack;
+	private_command_factors_tx private_command_factors;
+	private_command_factors_request_tx private_command_factors_request;
+	private_command_acuator_tx private_command_acuator;
+	private_remote_control_tx private_remote_control;
     private:
 
-	std::array<nmea2000_frame_tx *,1> frames_tx = { {
+	std::array<nmea2000_frame_tx *,7> frames_tx = { {
 		&iso_address_claim,
-#if 0
-		&n2k_attitude,
-		&n2k_rateofturn,
-		&n2k_navdata,
-		&n2k_xte,
-#endif
+		&private_command_engage,
+		&private_command_errack,
+		&private_command_factors,
+		&private_command_factors_request,
+		&private_command_acuator,
+		&private_remote_control,
 	} };
 	uint8_t sid;
 };

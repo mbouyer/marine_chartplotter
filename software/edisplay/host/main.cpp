@@ -30,8 +30,6 @@
 #include "N2K/nmea2000_defs_tx.h"
 #include "lv_edisplay/edisplay.h"
 
-static nmea2000 *n2kp;
-
 static void
 usage(void)
 {
@@ -46,8 +44,8 @@ int main(int argc, char ** argv)
 		usage();
 	}
 	edisplay_app_init();
-	n2kp = new nmea2000(argv[1]);
-	n2kp->Init();
+	nmea2000P = new nmea2000(argv[1]);
+	nmea2000P->Init();
 	edisplay_app_run();
 	exit(0);
 }

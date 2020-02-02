@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Manuel Bouyer
+ * Copyright (c) 2020 Manuel Bouyer
  *
  * All rights reserved.
  *
@@ -25,17 +25,52 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iostream>
 #include "NMEA2000.h"
-#include "nmea2000_defs_tx.h"
 #include "nmea2000_defs_rx.h"
+#include "nmea2000_defs_tx.h"
+#include <lv_edisplay/edisplay_data.h>
 
-void
-n2k_attitude_tx::update(double yaw, double pitch, double roll, uint8_t sid)
+bool private_command_status_rx::handle(const nmea2000_frame &f)
 {
-	uint82frame(sid, 0);
-	int162frame(yaw * 10000, 1);
-	int162frame(pitch * 10000, 3);
-	int162frame(roll * 10000, 5);
-	valid = true;
+	int heading = f.frame2int16(0);
+	uint8_t error = f.frame2uint8(2);
+	uint8_t r_mode = f.frame2uint8(3);
+	int8_t rudder = f.frame2uint8(4);
+	uint8_t r_slot = f.frame2uint8(5);
+	if (addr != f.getsrc()) {
+		setdst_auto(f.getsrc());
+		addr = f.getsrc();
+	}
+	return true;
+}
+
+void private_command_status_rx::setdst_auto(int addr)
+{
+	unsigned int dst_pgns[] = {PRIVATE_COMMAND_ENGAGE,
+			   PRIVATE_COMMAND_ERRACK,
+			   PRIVATE_COMMAND_FACTORS,
+			   PRIVATE_COMMAND_FACTORS_REQUEST,
+			   PRIVATE_COMMAND_ACUATOR,
+			   PRIVATE_REMOTE_CONTROL,
+	};
+
+	for (int i = 0; i < sizeof(dst_pgns) / sizeof(dst_pgns[0]); i++) {
+		nmea2000P->get_frametx(nmea2000P->get_tx_bypgn(dst_pgns[i]))->setdst(addr);
+	}
+}
+
+bool private_command_factors_rx::handle(const nmea2000_frame &f)
+{
+	char slot = f.frame2uint8(0);
+	int err = f.frame2int16(1);
+	int dif = f.frame2int16(3);
+	int dif2 = f.frame2int16(5);
+	return true;
+}
+
+bool private_remote_control_rx::handle(const nmea2000_frame &f)
+{
+	char type = f.frame2uint8(0);
+	char subtype = f.frame2uint8(1);
+	return true;
 }

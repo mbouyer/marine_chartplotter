@@ -95,6 +95,35 @@ class nmea2000_navdata_rx : public nmea2000_fastframe_rx {
 	bool fast_handle(const nmea2000_frame &f);
 };
 
+class private_command_status_rx : public nmea2000_frame_rx {
+    public:
+	inline private_command_status_rx() :
+	    nmea2000_frame_rx("autopilot command status", true, PRIVATE_COMMAND_STATUS) {};
+	virtual ~private_command_status_rx() {};
+	bool handle(const nmea2000_frame &f);
+    private:
+	int addr;
+	int slot;
+	int mode;
+	void setdst_auto(int);
+};
+
+class private_command_factors_rx : public nmea2000_frame_rx {
+    public:
+	inline private_command_factors_rx() :
+	    nmea2000_frame_rx("autopilot command factors", true, PRIVATE_COMMAND_FACTORS) {};
+	virtual ~private_command_factors_rx() {};
+	bool handle(const nmea2000_frame &f);
+};
+
+class private_remote_control_rx : public nmea2000_frame_rx {
+    public:
+	inline private_remote_control_rx() :
+	    nmea2000_frame_rx("private remote control", true, PRIVATE_REMOTE_CONTROL) {};
+	virtual ~private_remote_control_rx() {};
+	bool handle(const nmea2000_frame &f);
+};
+
 class nmea2000_rx {
     public:
 	inline nmea2000_rx() {};
@@ -109,12 +138,18 @@ class nmea2000_rx {
 	nmea2000_cogsog_rx cogsog;
 	nmea2000_xte_rx xte;
 	nmea2000_navdata_rx navdata;
+	private_command_status_rx private_command_status;
+	private_command_factors_rx private_command_factors;
+	private_remote_control_rx private_remote_control;
 
-	std::array<nmea2000_frame_rx *,4> frames_rx = { {
+	std::array<nmea2000_frame_rx *,7> frames_rx = { {
 	    &attitude,
 	    &cogsog,
 	    &xte,
 	    &navdata,
+	    &private_command_status,
+	    &private_command_factors,
+	    &private_remote_control,
 	} };
 };
 
