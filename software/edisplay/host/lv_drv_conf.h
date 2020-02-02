@@ -47,7 +47,7 @@
 #  define MONITOR_SDL_INCLUDE_PATH    <SDL2/SDL.h>
 
 /*Different rendering might be used if running in a Virtual machine*/
-#  define MONITOR_VIRTUAL_MACHINE 0
+#  define MONITOR_VIRTUAL_MACHINE 1
 
 /*Open two windows to test multi display support*/
 #  define MONITOR_DUAL            0
