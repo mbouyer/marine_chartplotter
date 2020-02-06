@@ -42,3 +42,8 @@ extern edisp_page_t epage_autopilot;
 void edisp_autopilot_set_cogsog(const char *, const char *);
 
 extern edisp_page_t epage_navdata;
+
+#define BUTTON_MOB 0
+#define BUTTON_LIGHT 1
+#define BUTTON_PAGE 2
+#define BUTTON_CANCEL 3
