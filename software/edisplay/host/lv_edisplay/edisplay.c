@@ -140,7 +140,8 @@ print_ev(lv_event_t event)
 		printf("LV_EVENT_DRAG_THROW_BEGIN");
 		break;
 	case LV_EVENT_KEY:
-		printf("LV_EVENT_KEY");
+		// LV_KEY_LEFT, LV_KEY_RIGHT
+		printf("LV_EVENT_KEY %d", *((uint32_t *)lv_event_get_data()));
 		break;
 	case LV_EVENT_FOCUSED:
 		printf("LV_EVENT_FOCUSED");
