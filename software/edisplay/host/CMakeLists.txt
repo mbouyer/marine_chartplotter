@@ -102,6 +102,10 @@ SET(N2KHDRS
 )
 
 SET(LVHDRS
+    lv_edisplay/edisplay.h
+    lv_edisplay/edisplay_data.h
+    lv_edisplay/edisplay_font.h
+    lv_edisplay/edisplay_pages.h
     lvgl/lvgl.h
     lvgl/src/lv_conf_checker.h
     lvgl/src/lv_core/lv_disp.h
@@ -206,6 +210,8 @@ SET(N2KSRCS
 
 SET(LVSRCS
     lv_edisplay/edisplay.c
+    lv_edisplay/edisplay_page_autopilot.c
+    lv_edisplay/edisplay_page_navdata.c
     lv_edisplay/font_lib16.c
     lv_edisplay/font_lib24.c
     lvgl/src/lv_core/lv_group.c
