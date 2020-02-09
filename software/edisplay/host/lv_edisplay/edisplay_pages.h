@@ -37,6 +37,9 @@ extern lv_style_t style_medium_text;
 extern lv_style_t style_small_text;
 
 void activate_page(edisp_page_t *);
+void deactivate_page(edisp_page_t *);
+
+void print_ev(lv_event_t event);
 
 extern edisp_page_t epage_autopilot;
 void edisp_autopilot_set_cogsog(const char *, const char *);

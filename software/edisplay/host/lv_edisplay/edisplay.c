@@ -35,6 +35,9 @@
 static void page_list(void);
 static void light_slide(edisp_page_t *);
 
+static void enc_group_focus(lv_obj_t *);
+static void enc_group_defocus(lv_obj_t *);
+
 lv_style_t style_large_text;
 lv_style_t style_medium_text;
 lv_style_t style_small_text;
@@ -92,7 +95,26 @@ activate_page(edisp_page_t *epage)
 {
 	if (epage->epage_page != NULL) {
 		lv_scr_load(epage->epage_page);
+		enc_group_focus(epage->epage_page);
 	}
+}
+
+void
+deactivate_page(edisp_page_t *epage)
+{
+	if (epage->epage_page != NULL) {
+		enc_group_defocus(epage->epage_page);
+	}
+}
+
+static void
+switch_to_page(int new)
+{
+	if (epages[new] != &epage_retro) {
+		deactivate_page(epages[current_page]);
+		current_page = new;
+	}
+	epages[new]->epage_activate(epages[new]);
 }
 
 static void
@@ -102,7 +124,7 @@ disp_refresh(void *p)
 	set_backlight();
 }
 
-static void
+void
 print_ev(lv_event_t event)
 {
 	switch(event) {
@@ -172,13 +194,11 @@ print_ev(lv_event_t event)
 	}
 }
 
-static void back_click_action(lv_obj_t * obj, lv_event_t event)
+static void
+back_click_action(lv_obj_t * obj, lv_event_t event)
 {
 
 	switch(event) {
-	case LV_EVENT_SHORT_CLICKED:
-		page_list();
-		return;
 	case LV_EVENT_REFRESH:
 		lv_async_call(disp_refresh, NULL);
 		return;
@@ -189,16 +209,16 @@ static void back_click_action(lv_obj_t * obj, lv_event_t event)
 }
 
 static void
-btn1_click_action(lv_obj_t * btn, lv_event_t event)
+btn_mob_click_action(lv_obj_t * btn, lv_event_t event)
 {
 
-	   printf("buttons[0].button event ");
+	   printf("buttons[BUTTON_MOB].button event ");
 	   print_ev(event);
 	printf("\n");
 }
 
 static void
-btn2_click_action(lv_obj_t * btn, lv_event_t event)
+btn_light_click_action(lv_obj_t * btn, lv_event_t event)
 {
 
 	   switch(event) {
@@ -220,38 +240,69 @@ btn2_click_action(lv_obj_t * btn, lv_event_t event)
 		set_backlight();
 		return;
 	   }
-	   printf("buttons[1].button event ");
+	   printf("buttons[BUTTON_LIGHT].button event ");
 	   print_ev(event);
 	printf("\n");
 }
 
 static void
-btn3_click_action(lv_obj_t * btn, lv_event_t event)
+btn_page_click_action(lv_obj_t * btn, lv_event_t event)
+{
+	int new_page;
+	switch(event) {
+	   case LV_EVENT_LONG_PRESSED:
+		page_list();
+		return;
+	   case LV_EVENT_SHORT_CLICKED:
+	       do {
+		new_page = current_page + 1;
+		if (new_page >= sizeof(epages) / sizeof(epages[0]))
+			new_page = 0;
+		} while (epages[new_page]->epage_in_page == false);
+		switch_to_page(new_page);
+		return;
+	}
+		
+	printf("buttons[BUTTON_PAGE].button event ");
+	print_ev(event);
+	printf("\n");
+}
+
+static void
+btn_cancel_click_action(lv_obj_t * btn, lv_event_t event)
 {
 
-	   printf("buttons[2].button event ");
+	   printf("buttons[BUTTON_CANCEL].button event ");
 	   print_ev(event);
 	printf("\n");
 }
 
 static void
-btn4_click_action(lv_obj_t * btn, lv_event_t event)
+enc_group_focus(lv_obj_t *obj)
 {
+	lv_group_set_editing(encg, false);
+	lv_group_focus_freeze(encg, false);
+	lv_group_add_obj(encg, obj);
+	lv_group_focus_obj(obj);
+	lv_group_set_editing(encg, true);
+	lv_group_focus_freeze(encg, true);
+}
 
-	   printf("buttons[3].button event ");
-	   print_ev(event);
-	printf("\n");
+static void
+enc_group_defocus(lv_obj_t *obj)
+{
+	lv_group_set_editing(encg, false);
+	lv_group_focus_freeze(encg, false);
+	lv_group_remove_obj(obj);
+	lv_group_set_editing(encg, true);
+	lv_group_focus_freeze(encg, true);
 }
 
 static void
 enc_group_close(lv_obj_t *obj)
 {
-	lv_group_set_editing(encg, false);
-	lv_group_focus_freeze(encg, false);
-	lv_group_remove_obj(obj);
+	enc_group_defocus(obj);
 	lv_obj_del_async(obj);
-	lv_group_set_editing(encg, true);
-	lv_group_focus_freeze(encg, true);
 }
 
 static void
@@ -282,11 +333,7 @@ light_slide(edisp_page_t *epage)
 	lv_obj_move_foreground(slide);
 	lv_obj_align(slide, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
 	lv_group_set_editing(encg, false);
-	lv_group_focus_freeze(encg, false);
-	lv_group_add_obj(encg, slide);
-	lv_group_focus_obj(slide);
-	lv_group_set_editing(encg, true);
-	lv_group_focus_freeze(encg, true);
+	enc_group_focus(slide);
 }
 
 static void
@@ -298,9 +345,7 @@ page_action(lv_obj_t *list, lv_event_t event)
 		int value = lv_ddlist_get_selected(list);
 		printf("new page %d\n", value);
 		enc_group_close(list);
-		if (epages[value] != &epage_retro) 
-			current_page = value;
-		epages[value]->epage_activate(epages[value]);
+		switch_to_page(value);
 		break;
 		}
 	}
@@ -326,12 +371,7 @@ page_list(void)
 	lv_ddlist_set_stay_open(list, true);
 	lv_obj_move_foreground(list);
 	lv_obj_align(list, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
-	lv_group_set_editing(encg, false);
-	lv_group_focus_freeze(encg, false);
-	lv_group_add_obj(encg, list);
-	lv_group_focus_obj(list);
-	lv_group_set_editing(encg, true);
-	lv_group_focus_freeze(encg, true);
+	enc_group_focus(list);
 }
 
 static void
@@ -349,53 +389,71 @@ edisplay_buttons_create(void)
 	style_btn_pr.image.color = LV_COLOR_WHITE;
 	style_btn_pr.line.color = LV_COLOR_WHITE;
 
-	buttons[0].button = lv_btn_create(lv_top, NULL);
-	lv_cont_set_fit(buttons[0].button, LV_FIT_TIGHT);
-	lv_obj_set_event_cb(buttons[0].button, btn1_click_action);
-	lv_btn_set_style(buttons[0].button, LV_BTN_STYLE_REL, &style_btn);
-	lv_btn_set_style(buttons[0].button, LV_BTN_STYLE_PR, &style_btn_pr);
+	buttons[BUTTON_MOB].button = lv_btn_create(lv_top, NULL);
+	lv_cont_set_fit(buttons[BUTTON_MOB].button, LV_FIT_TIGHT);
+	lv_obj_set_event_cb(buttons[BUTTON_MOB].button, btn_mob_click_action);
+	lv_btn_set_style(buttons[BUTTON_MOB].button, LV_BTN_STYLE_REL,
+	    &style_btn);
+	lv_btn_set_style(buttons[BUTTON_MOB].button, LV_BTN_STYLE_PR,
+	    &style_btn_pr);
 
-	buttons[0].label = lv_label_create(buttons[0].button, NULL);
-	lv_label_set_static_text(buttons[0].label, "MoB");
-	lv_coord_t w = lv_obj_get_width(buttons[0].button);
-	lv_coord_t h = lv_obj_get_height(buttons[0].button);
-	lv_obj_align(buttons[0].button, NULL, LV_ALIGN_OUT_TOP_LEFT, 0, h);
+	buttons[BUTTON_MOB].label =
+	    lv_label_create(buttons[BUTTON_MOB].button, NULL);
+	lv_label_set_static_text(buttons[BUTTON_MOB].label, "MoB");
+	lv_coord_t w = lv_obj_get_width(buttons[BUTTON_MOB].button);
+	lv_coord_t h = lv_obj_get_height(buttons[BUTTON_MOB].button);
+	lv_obj_align(buttons[BUTTON_MOB].button, NULL,
+	    LV_ALIGN_OUT_TOP_LEFT, 0, h);
 
-	buttons[1].button = lv_btn_create(lv_top, NULL);
-	lv_cont_set_fit(buttons[1].button, LV_FIT_TIGHT);
-	lv_obj_set_event_cb(buttons[1].button, btn2_click_action);
-	lv_btn_set_style(buttons[1].button, LV_BTN_STYLE_REL, &style_btn);
-	lv_btn_set_style(buttons[1].button, LV_BTN_STYLE_PR, &style_btn_pr);
+	buttons[BUTTON_LIGHT].button = lv_btn_create(lv_top, NULL);
+	lv_cont_set_fit(buttons[BUTTON_LIGHT].button, LV_FIT_TIGHT);
+	lv_obj_set_event_cb(buttons[BUTTON_LIGHT].button,
+	    btn_light_click_action);
+	lv_btn_set_style(buttons[BUTTON_LIGHT].button, LV_BTN_STYLE_REL,
+	    &style_btn);
+	lv_btn_set_style(buttons[BUTTON_LIGHT].button, LV_BTN_STYLE_PR,
+	    &style_btn_pr);
 
-	buttons[1].label = lv_label_create(buttons[1].button, NULL);
-	lv_label_set_static_text(buttons[1].label, "light");
-	w = lv_obj_get_width(buttons[1].button);
-	h = lv_obj_get_height(buttons[1].button);
-	lv_obj_align(buttons[1].button, NULL, LV_ALIGN_OUT_TOP_RIGHT, 0, h);
+	buttons[BUTTON_LIGHT].label =
+	    lv_label_create(buttons[BUTTON_LIGHT].button, NULL);
+	lv_label_set_static_text(buttons[BUTTON_LIGHT].label, "light");
+	w = lv_obj_get_width(buttons[BUTTON_LIGHT].button);
+	h = lv_obj_get_height(buttons[BUTTON_LIGHT].button);
+	lv_obj_align(buttons[BUTTON_LIGHT].button, NULL,
+	    LV_ALIGN_OUT_TOP_RIGHT, 0, h);
 
-	buttons[2].button = lv_btn_create(lv_top, NULL);
-	lv_cont_set_fit(buttons[2].button, LV_FIT_TIGHT);
-	lv_obj_set_event_cb(buttons[2].button, btn3_click_action);
-	lv_btn_set_style(buttons[2].button, LV_BTN_STYLE_REL, &style_btn);
-	lv_btn_set_style(buttons[2].button, LV_BTN_STYLE_PR, &style_btn_pr);
+	buttons[BUTTON_PAGE].button = lv_btn_create(lv_top, NULL);
+	lv_cont_set_fit(buttons[BUTTON_PAGE].button, LV_FIT_TIGHT);
+	lv_obj_set_event_cb(buttons[BUTTON_PAGE].button, btn_page_click_action);
+	lv_btn_set_style(buttons[BUTTON_PAGE].button, LV_BTN_STYLE_REL,
+	    &style_btn);
+	lv_btn_set_style(buttons[BUTTON_PAGE].button, LV_BTN_STYLE_PR,
+	    &style_btn_pr);
 
-	buttons[2].label = lv_label_create(buttons[2].button, NULL);
-	lv_label_set_static_text(buttons[2].label, "page");
-	w = lv_obj_get_width(buttons[2].button);
-	h = lv_obj_get_height(buttons[2].button);
-	lv_obj_align(buttons[2].button, NULL, LV_ALIGN_OUT_BOTTOM_LEFT, 0, -h);
+	buttons[BUTTON_PAGE].label =
+	    lv_label_create(buttons[BUTTON_PAGE].button, NULL);
+	lv_label_set_static_text(buttons[BUTTON_PAGE].label, "page");
+	w = lv_obj_get_width(buttons[BUTTON_PAGE].button);
+	h = lv_obj_get_height(buttons[BUTTON_PAGE].button);
+	lv_obj_align(buttons[BUTTON_PAGE].button, NULL,
+	    LV_ALIGN_OUT_BOTTOM_LEFT, 0, -h);
 
-	buttons[3].button = lv_btn_create(lv_top, NULL);
-	lv_cont_set_fit(buttons[3].button, LV_FIT_TIGHT);
-	lv_obj_set_event_cb(buttons[3].button, btn4_click_action);
-	lv_btn_set_style(buttons[3].button, LV_BTN_STYLE_REL, &style_btn);
-	lv_btn_set_style(buttons[3].button, LV_BTN_STYLE_PR, &style_btn_pr);
+	buttons[BUTTON_CANCEL].button = lv_btn_create(lv_top, NULL);
+	lv_cont_set_fit(buttons[BUTTON_CANCEL].button, LV_FIT_TIGHT);
+	lv_obj_set_event_cb(buttons[BUTTON_CANCEL].button,
+	    btn_cancel_click_action);
+	lv_btn_set_style(buttons[BUTTON_CANCEL].button, LV_BTN_STYLE_REL,
+	    &style_btn);
+	lv_btn_set_style(buttons[BUTTON_CANCEL].button, LV_BTN_STYLE_PR,
+	    &style_btn_pr);
 
-	buttons[3].label = lv_label_create(buttons[3].button, NULL);
-	lv_label_set_static_text(buttons[3].label, "cancel");
-	w = lv_obj_get_width(buttons[3].button);
-	h = lv_obj_get_height(buttons[3].button);
-	lv_obj_align(buttons[3].button, NULL, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, -h);
+	buttons[BUTTON_CANCEL].label =
+	    lv_label_create(buttons[BUTTON_CANCEL].button, NULL);
+	lv_label_set_static_text(buttons[BUTTON_CANCEL].label, "cancel");
+	w = lv_obj_get_width(buttons[BUTTON_CANCEL].button);
+	h = lv_obj_get_height(buttons[BUTTON_CANCEL].button);
+	lv_obj_align(buttons[BUTTON_CANCEL].button, NULL,
+	    LV_ALIGN_OUT_BOTTOM_RIGHT, 0, -h);
 }
 
 /**
@@ -405,6 +463,7 @@ void
 edisplay_app_init(void)
 {
 	int i;
+	static lv_style_t style_page;
 
 	lv_init();
 
@@ -430,23 +489,21 @@ edisplay_app_init(void)
 	lv_top = lv_disp_get_layer_top(NULL);
 	lv_obj_set_click(lv_top, 1);
 	lv_obj_set_event_cb(lv_top, back_click_action);
-	lv_group_add_obj(encg, lv_top);
-	lv_group_focus_obj(lv_top);
-	lv_group_set_editing(encg, true);
-	lv_group_focus_freeze(encg, true);
 
 	lv_top_trs = lv_obj_create(lv_top, lv_top);
 
 	edisplay_buttons_create();
+
+	lv_style_copy(&style_page, lv_obj_get_style(lv_scr_act()));
 	
 	for (i = 0; i < sizeof(epages) / sizeof(epages[0]); i++) {
 		epages[i]->epage_page = lv_obj_create(NULL, NULL);
-		lv_obj_set_style(epages[i]->epage_page,
-		    lv_obj_get_style(lv_scr_act()));
+		lv_obj_set_style(epages[i]->epage_page, &style_page);
 		if (epages[i]->epage_init != NULL)
 			epages[i]->epage_init();
 	}
 
+	lv_group_add_obj(encg, lv_top);
 	current_page = 0;
 	epages[current_page]->epage_activate(epages[current_page]);
 }

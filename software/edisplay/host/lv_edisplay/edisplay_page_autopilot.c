@@ -72,6 +72,16 @@ edisp_set_attitude(int cap, int roll)
 }
 
 static void
+edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
+{
+	        /* switch(event) {
+		} */
+		printf("autopilot event ");
+		print_ev(event);
+		printf("\n");
+}
+
+static void
 edisp_create_autopilot()
 {
 	cap_value = lv_label_create(edisp_page, NULL);
@@ -121,6 +131,10 @@ edisp_create_autopilot()
 	h = lv_obj_get_height(vittf0_value);
 	lv_obj_align(fond_label, capf0_value, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
 	lv_obj_align(vittf0_value, fond_label, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+
+	lv_obj_set_click(edisp_page, 1);
+	lv_obj_set_event_cb(edisp_page, edisp_autopilot_action);
+
 	set_attitude_task = lv_task_create(
 	    edisp_set_attitude_timeout, 2000, LV_TASK_PRIO_MID, NULL);
 }
