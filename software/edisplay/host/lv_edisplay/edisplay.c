@@ -254,10 +254,11 @@ btn_page_click_action(lv_obj_t * btn, lv_event_t event)
 		page_list();
 		return;
 	   case LV_EVENT_SHORT_CLICKED:
-	       do {
-		new_page = current_page + 1;
-		if (new_page >= sizeof(epages) / sizeof(epages[0]))
-			new_page = 0;
+		new_page = current_page;
+		do {
+			new_page++;
+			if (new_page >= sizeof(epages) / sizeof(epages[0]))
+				new_page = 0;
 		} while (epages[new_page]->epage_in_page == false);
 		switch_to_page(new_page);
 		return;
@@ -456,6 +457,12 @@ edisplay_buttons_create(void)
 	    LV_ALIGN_OUT_BOTTOM_RIGHT, 0, -h);
 }
 
+/* empty function for focus/edit style */
+static void
+empty_style_mod_cb(lv_group_t * group, lv_style_t * style)
+{
+}
+
 /**
  * Create a edisplay application
  */
@@ -476,6 +483,9 @@ edisplay_app_init(void)
 	lv_coord_t vres = lv_disp_get_ver_res(NULL);
 	lv_theme_t * th = lv_theme_mono_init(20, NULL);
 	lv_theme_set_current(th);
+
+	lv_group_set_style_mod_cb(encg, empty_style_mod_cb);
+	lv_group_set_style_mod_edit_cb(encg, empty_style_mod_cb);
 
 	lv_style_copy(&style_small_text, &lv_style_transp_tight);
 	style_small_text.text.font = &lv_font_unscii_8;
