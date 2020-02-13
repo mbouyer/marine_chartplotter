@@ -95,8 +95,9 @@ edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
 	char buf[6];
 	lv_task_reset(set_auto_task);
 	/* XXX handle errors */
-	if (mode == auto_mode && heading == auto_heading && slot == auto_slot)
+	if (mode == auto_mode && heading == auto_heading && slot == auto_slot) {
 		return; /* nothing changed */
+	}
 	switch(mode) {
 	case AUTO_OFF:
 		auto_slot = slot;
@@ -113,7 +114,7 @@ edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
 		auto_heading = heading;
 		auto_slot = slot;
 		auto_mode = mode;
-		snprintf(buf, 6, "%3d" DEGSTR, heading);
+		snprintf(buf, 6, "%3d" DEGSTR, (int)heading);
 		lv_label_set_text(autocap_value, buf);
 		break;
 	}

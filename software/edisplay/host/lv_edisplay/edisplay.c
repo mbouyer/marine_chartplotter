@@ -571,7 +571,8 @@ edisplay_app_init(void)
 	epages[current_page]->epage_activate(epages[current_page]);
 }
 
-void edisplay_app_run(void)
+void
+edisplay_app_run(void)
 {
 	struct timeval tv, tv_prev, tv_diff;
 	time_t ticktime;
