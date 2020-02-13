@@ -40,7 +40,10 @@ static lv_obj_t *vittf0_value;
 static lv_task_t *set_attitude_task;
 static lv_task_t *set_auto_task;
 
+static int received_heading;
+
 static uint8_t auto_mode;
+#define AUTO_INVALID 0xff
 static double auto_heading;
 static double auto_slot;
 
@@ -61,14 +64,16 @@ edisp_set_attitude_timeout(lv_task_t *task)
 {
 	lv_label_set_text(cap_value, "---" DEGSTR);
 	lv_label_set_text(roll_value, "---" DEGSTR);
+	received_heading = AUTO_INVALID;
 }
 
 void
-edisp_set_attitude(int cap, int roll)
+edisp_set_attitude(int heading, int roll)
 {
 	char buf[6];
-	snprintf(buf, 6, "%3d" DEGSTR, cap);
+	snprintf(buf, 6, "%3d" DEGSTR, heading);
 	lv_label_set_text(cap_value, buf);
+	received_heading = heading;
 
 	snprintf(buf, 6, "%3d" DEGSTR, roll);
 	lv_label_set_text(roll_value, buf);
@@ -80,7 +85,8 @@ static void
 edisp_set_auto_timeout(lv_task_t *task)
 {
 	lv_label_set_text(autocap_value, "---" DEGSTR);
-	auto_mode = 0xff;
+	auto_mode = AUTO_INVALID;
+	auto_heading = -1;
 }
 
 void
@@ -93,18 +99,48 @@ edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
 		return; /* nothing changed */
 	switch(mode) {
 	case AUTO_OFF:
+		auto_slot = slot;
+		auto_mode = mode;
+		auto_heading = -1;
 		lv_label_set_text(autocap_value, "OFF ");
 		break;
 	case AUTO_STANDBY:
-		auto_heading = heading;
 		auto_slot = slot;
+		auto_mode = mode;
 		lv_label_set_text(autocap_value, "STBY");
 		break;
 	case AUTO_HEAD:
 		auto_heading = heading;
 		auto_slot = slot;
+		auto_mode = mode;
 		snprintf(buf, 6, "%3d" DEGSTR, heading);
 		lv_label_set_text(autocap_value, buf);
+		break;
+	}
+}
+
+void
+edisp_autopilot_startstop(bool active)
+{
+	switch(auto_mode) {
+	case AUTO_OFF:
+		if (received_heading >= 0 && active) {
+			auto_heading = received_heading;
+			if (!n2ks_auto_engage(auto_heading, AUTO_STANDBY,
+			    auto_slot))
+				printf("n2ks_auto_engage failed\n");
+		}
+		break;
+	case AUTO_STANDBY:
+		if (auto_heading > 0 && active) {
+			if (!n2ks_auto_engage(auto_heading, AUTO_HEAD,
+			    auto_slot))
+				printf("n2ks_auto_engage failed\n");
+		}
+		break;
+	case AUTO_HEAD:
+		if (!n2ks_auto_engage(auto_heading, AUTO_STANDBY, auto_slot))
+			printf("n2ks_auto_engage failed\n");
 		break;
 	}
 }
@@ -128,6 +164,7 @@ edisp_create_autopilot()
 	int w = lv_obj_get_width(cap_value);
 	int h = lv_obj_get_height(cap_value);
 	lv_obj_align(cap_value, NULL, LV_ALIGN_OUT_TOP_LEFT, 0, h + 10);
+	received_heading = AUTO_INVALID;
 
 	lv_obj_t *autocap_label = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(autocap_label, LV_LABEL_STYLE_MAIN, &style_small_text);
@@ -139,7 +176,7 @@ edisp_create_autopilot()
 	h = lv_obj_get_height(autocap_value);
 	lv_obj_align(autocap_label, cap_value, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
 	lv_obj_align(autocap_value, autocap_label, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
-	auto_mode = 0xff;
+	auto_mode = AUTO_INVALID;
 
 	lv_obj_t *roll_label = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(roll_label, LV_LABEL_STYLE_MAIN, &style_small_text);

@@ -43,6 +43,7 @@ void print_ev(lv_event_t event);
 
 extern edisp_page_t epage_autopilot;
 void edisp_autopilot_set_cogsog(const char *, const char *);
+void edisp_autopilot_startstop(bool);
 
 extern edisp_page_t epage_navdata;
 

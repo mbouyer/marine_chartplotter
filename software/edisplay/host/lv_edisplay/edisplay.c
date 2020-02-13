@@ -230,13 +230,16 @@ static void
 btn_mob_click_action(lv_obj_t * btn, lv_event_t event)
 {
 	switch(event) {
-	   case LV_EVENT_LONG_PRESSED:
+	case LV_EVENT_LONG_PRESSED:
 		if (!n2ks_control_mob()) 
 			printf("MOB failed\n");
 		return;
+	case LV_EVENT_SHORT_CLICKED:
+		edisp_autopilot_startstop(
+		    epages[current_page] == &epage_autopilot);
+		return;
 	}
 		
-
 	printf("buttons[BUTTON_MOB].button event ");
 	print_ev(event);
 	printf("\n");
