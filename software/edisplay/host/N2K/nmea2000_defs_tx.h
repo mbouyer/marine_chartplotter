@@ -144,7 +144,7 @@ class private_remote_control_tx : public nmea2000_frame_tx {
     public:
 	inline private_remote_control_tx() : nmea2000_frame_tx("private remote control", true, PRIVATE_REMOTE_CONTROL, NMEA2000_PRIORITY_INFO, 8) { };
 	virtual ~private_remote_control_tx() {};
-	bool senddata(int8_t, int8_t, const int8_t *, int);
+	bool senddata(uint8_t, int8_t, int8_t, const int8_t *, int);
 };
 
 class nmea2000_tx {

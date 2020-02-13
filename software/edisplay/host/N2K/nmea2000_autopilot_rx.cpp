@@ -39,7 +39,7 @@ bool private_command_status_rx::handle(const nmea2000_frame &f)
 	uint8_t r_slot = f.frame2uint8(5);
 	double headingd;
 	if (addr != f.getsrc()) {
-		setdst_auto(f.getsrc());
+		n2k_set_command_address(f.getsrc());
 		addr = f.getsrc();
 	}
 	if (heading == HEADING_INVALID) 
@@ -47,23 +47,8 @@ bool private_command_status_rx::handle(const nmea2000_frame &f)
 	else
 		headingd = rad2deg(heading);
 
-	edisp_set_auto_status(mode, headingd, error, slot);
+	edisp_set_auto_status(r_mode, headingd, error, r_slot);
 	return true;
-}
-
-void private_command_status_rx::setdst_auto(int addr)
-{
-	unsigned int dst_pgns[] = {PRIVATE_COMMAND_ENGAGE,
-			   PRIVATE_COMMAND_ERRACK,
-			   PRIVATE_COMMAND_FACTORS,
-			   PRIVATE_COMMAND_FACTORS_REQUEST,
-			   PRIVATE_COMMAND_ACUATOR,
-			   PRIVATE_REMOTE_CONTROL,
-	};
-
-	for (int i = 0; i < sizeof(dst_pgns) / sizeof(dst_pgns[0]); i++) {
-		nmea2000P->get_frametx(nmea2000P->get_tx_bypgn(dst_pgns[i]))->setdst(addr);
-	}
 }
 
 bool private_command_factors_rx::handle(const nmea2000_frame &f)

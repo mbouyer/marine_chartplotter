@@ -30,6 +30,8 @@
 #include "nmea2000_defs_rx.h"
 #include <lv_edisplay/edisplay_data.h>
 
+static int command_address = 0;
+
 bool
 private_command_engage_tx::senddata(double heading, uint8_t auto_mode, uint8_t params_slot)
 {
@@ -95,7 +97,7 @@ private_command_factors_request_tx::senddata(int8_t slot)
 }
 
 bool
-private_remote_control_tx::senddata(int8_t type, int8_t subtype, const int8_t *data, int size)
+private_remote_control_tx::senddata(uint8_t addr, int8_t type, int8_t subtype, const int8_t *data, int size)
 {
 	bool ret;
 	int82frame(type, 0);
@@ -103,6 +105,8 @@ private_remote_control_tx::senddata(int8_t type, int8_t subtype, const int8_t *d
 	for (int i = 0; i < size - 2; i++) {
 		int82frame(data[i], i + 2);
 	}
+	setdst(addr);
+	frame->can_dlc = size;
 	valid = true;
 	ret = nmea2000P->send_bypgn(PRIVATE_REMOTE_CONTROL, true);
 	valid = false;
@@ -170,7 +174,7 @@ bool
 n2ks_control_mob()
 {
         private_remote_control_tx *f = (private_remote_control_tx *)nmea2000P->get_frametx(nmea2000P->get_tx_bypgn(PRIVATE_REMOTE_CONTROL));
-	return f->senddata(
+	return f->senddata(NMEA2000_ADDR_GLOBAL,
 	    CONTROL_MOB, CONTROL_MOB_MARK, NULL, CONTROL_MOB_SIZE);
 }
 
@@ -193,8 +197,25 @@ n2ks_control_light_mode(int mode)
 	}
 
         private_remote_control_tx *f = (private_remote_control_tx *)nmea2000P->get_frametx(nmea2000P->get_tx_bypgn(PRIVATE_REMOTE_CONTROL));
-	return f->senddata(
+	return f->senddata(NMEA2000_ADDR_GLOBAL,
 	    CONTROL_LIGHT, n2k_mode, NULL, CONTROL_LIGHT_SIZE);
+}
+
+void
+n2k_set_command_address(int addr)
+{
+	static const unsigned int dst_pgns[] = {PRIVATE_COMMAND_ENGAGE,
+			   PRIVATE_COMMAND_ERRACK,
+			   PRIVATE_COMMAND_FACTORS,
+			   PRIVATE_COMMAND_FACTORS_REQUEST,
+			   PRIVATE_COMMAND_ACUATOR,
+	};
+
+	command_address = addr;
+
+	for (int i = 0; i < sizeof(dst_pgns) / sizeof(dst_pgns[0]); i++) {
+		nmea2000P->get_frametx(nmea2000P->get_tx_bypgn(dst_pgns[i]))->setdst(addr);
+	}
 }
 
 } // extern "C"

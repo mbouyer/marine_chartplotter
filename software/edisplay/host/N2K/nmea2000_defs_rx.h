@@ -103,9 +103,6 @@ class private_command_status_rx : public nmea2000_frame_rx {
 	bool handle(const nmea2000_frame &f);
     private:
 	int addr;
-	int slot;
-	int mode;
-	void setdst_auto(int);
 };
 
 class private_command_factors_rx : public nmea2000_frame_rx {

@@ -58,6 +58,8 @@ bool n2ks_auto_acuator(int8_t);
 bool n2ks_control_mob(void);
 bool n2ks_control_light_mode(int);
 
+void n2k_set_command_address(int);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
