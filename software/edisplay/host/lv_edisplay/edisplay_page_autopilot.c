@@ -203,7 +203,7 @@ edisp_create_autopilot()
 	lv_label_set_text(cap_value, "---" DEGSTR);
 	int w = lv_obj_get_width(cap_value);
 	int h = lv_obj_get_height(cap_value);
-	lv_obj_align(cap_value, NULL, LV_ALIGN_OUT_TOP_LEFT, 0, h + 10);
+	lv_obj_align(cap_value, NULL, LV_ALIGN_OUT_TOP_LEFT, 5, h + 10);
 	received_heading = AUTO_INVALID;
 
 	lv_obj_t *autocap_label = lv_label_create(edisp_page, NULL);
@@ -227,7 +227,7 @@ edisp_create_autopilot()
 	w = lv_obj_get_width(roll_value);
 	h = lv_obj_get_height(roll_value);
 	lv_obj_align(roll_label, cap_value, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
-	lv_obj_align(roll_value, roll_label, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+	lv_obj_align(roll_value, roll_label, LV_ALIGN_OUT_RIGHT_MID, 3, 0);
 
 	capf0_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(capf0_value, LV_LABEL_STYLE_MAIN, &style_large_text);
