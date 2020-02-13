@@ -54,6 +54,7 @@ bool n2ks_auto_engage(double, uint8_t, uint8_t);
 bool n2ks_auto_errack(uint8_t);
 bool n2ks_auto_factors(int8_t, int, int, int);
 bool n2ks_auto_factorsreq(int8_t);
+bool n2ks_auto_acuator(int8_t);
 bool n2ks_control_mob(void);
 bool n2ks_control_light_mode(int);
 

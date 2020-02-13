@@ -148,11 +148,45 @@ edisp_autopilot_startstop(bool active)
 static void
 edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
 {
-	        /* switch(event) {
-		} */
-		printf("autopilot event ");
-		print_ev(event);
-		printf("\n");
+	int key;
+	double new_head;
+	switch(event) {
+	case LV_EVENT_KEY:
+		key = *((uint32_t *)lv_event_get_data());
+		switch(auto_mode) {
+		case AUTO_STANDBY:
+			switch(key) {
+			case LV_KEY_RIGHT:
+				n2ks_auto_acuator(1);
+				break;
+			case LV_KEY_LEFT:
+				n2ks_auto_acuator(-1);
+				break;
+			}
+			break;
+		case AUTO_HEAD:
+			new_head;
+			if (auto_heading < 0)
+				return;
+			switch(key) {
+			case LV_KEY_RIGHT:
+				new_head = auto_heading + 1;
+				if (new_head >= 360)
+					new_head -= 360;
+				break;
+			case LV_KEY_LEFT:
+				new_head = auto_heading - 1;
+				if (new_head < 0)
+					new_head += 360;
+				break;
+			}
+			n2ks_auto_engage(new_head, AUTO_HEAD, auto_slot);
+		}
+		return;
+	}
+	printf("autopilot event ");
+	print_ev(event);
+	printf("\n");
 }
 
 static void

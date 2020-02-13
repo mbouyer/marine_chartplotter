@@ -49,6 +49,16 @@ private_command_engage_tx::senddata(double heading, uint8_t auto_mode, uint8_t p
 }
 
 bool
+private_command_acuator_tx::senddata(int8_t move)
+{
+	bool ret;
+	int82frame(move, 0);
+	ret = nmea2000P->send_bypgn(PRIVATE_COMMAND_ACUATOR, true);
+	valid = false;
+	return ret;
+}
+
+bool
 private_command_errack_tx::senddata(uint8_t ack_errors)
 {
 	bool ret;
@@ -147,6 +157,13 @@ n2ks_auto_factors_request(int8_t slot)
 {
         private_command_factors_request_tx *f = (private_command_factors_request_tx *)nmea2000P->get_frametx(nmea2000P->get_tx_bypgn(PRIVATE_COMMAND_FACTORS_REQUEST));
 	return f->senddata(slot);
+}
+
+bool
+n2ks_auto_acuator(int8_t move)
+{
+        private_command_factors_request_tx *f = (private_command_factors_request_tx *)nmea2000P->get_frametx(nmea2000P->get_tx_bypgn(PRIVATE_COMMAND_ACUATOR));
+	return f->senddata(move);
 }
 
 bool
