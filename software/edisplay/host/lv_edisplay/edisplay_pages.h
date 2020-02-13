@@ -51,3 +51,6 @@ extern edisp_page_t epage_navdata;
 #define BUTTON_LIGHT 1
 #define BUTTON_PAGE 2
 #define BUTTON_CANCEL 3
+
+void edisp_lvgl_lock(void);
+void edisp_lvgl_unlock(void);

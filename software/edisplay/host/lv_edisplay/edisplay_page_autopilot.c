@@ -70,6 +70,7 @@ edisp_set_attitude_timeout(lv_task_t *task)
 void
 edisp_set_attitude(int heading, int roll)
 {
+	edisp_lvgl_lock();
 	char buf[6];
 	snprintf(buf, 6, "%3d" DEGSTR, heading);
 	lv_label_set_text(cap_value, buf);
@@ -79,6 +80,7 @@ edisp_set_attitude(int heading, int roll)
 	lv_label_set_text(roll_value, buf);
 
 	lv_task_reset(set_attitude_task);
+	edisp_lvgl_unlock();
 }
 
 static void
@@ -93,9 +95,11 @@ void
 edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
 {
 	char buf[6];
+	edisp_lvgl_lock();
 	lv_task_reset(set_auto_task);
 	/* XXX handle errors */
 	if (mode == auto_mode && heading == auto_heading && slot == auto_slot) {
+		edisp_lvgl_unlock();
 		return; /* nothing changed */
 	}
 	switch(mode) {
@@ -118,6 +122,7 @@ edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
 		lv_label_set_text(autocap_value, buf);
 		break;
 	}
+	edisp_lvgl_unlock();
 }
 
 void

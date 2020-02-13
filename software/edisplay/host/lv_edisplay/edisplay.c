@@ -23,8 +23,10 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <err.h>
+#include <pthread.h>
 #include <sys/time.h>
 #include "lvgl/lvgl.h"
 #include "edisplay.h"
@@ -38,6 +40,9 @@ static void light_slide(edisp_page_t *);
 
 static void enc_group_focus(lv_obj_t *);
 static void enc_group_defocus(lv_obj_t *);
+
+static pthread_mutex_t edisp_lvgl_mtx;
+static pthread_mutexattr_t edisp_lvgl_mtx_attr;
 
 lv_style_t style_large_text;
 lv_style_t style_medium_text;
@@ -516,6 +521,25 @@ empty_style_mod_cb(lv_group_t * group, lv_style_t * style)
 {
 }
 
+void
+edisp_lvgl_lock()
+{
+	if (pthread_mutex_lock(&edisp_lvgl_mtx)) {
+		fprintf(stderr, "pthread_mutex_lock(&edisp_lvgl_mtx) failed\n");
+		abort();
+	}
+}
+
+void
+edisp_lvgl_unlock()
+{
+	if (pthread_mutex_unlock(&edisp_lvgl_mtx)) {
+		fprintf(stderr,
+		    "pthread_mutex_unlock(&edisp_lvgl_mtx) failed\n");
+		abort();
+	}
+}
+
 /**
  * Create a edisplay application
  */
@@ -525,6 +549,13 @@ edisplay_app_init(void)
 	int i;
 	static lv_style_t style_page;
 
+	pthread_mutexattr_init(&edisp_lvgl_mtx_attr);
+	pthread_mutexattr_settype(&edisp_lvgl_mtx_attr, PTHREAD_MUTEX_ERRORCHECK);
+	if (pthread_mutex_init(&edisp_lvgl_mtx, &edisp_lvgl_mtx_attr)) {
+		fprintf(stderr,
+		    "pthread_mutex_init(&edisp_lvgl_mtx) failed\n");
+		abort();
+	}
 	lv_init();
 
 	encg = lv_group_create();
@@ -582,6 +613,7 @@ edisplay_app_run(void)
 	}
 
 	while(1) {
+		edisp_lvgl_lock();
 		lv_task_handler();
 		if (gettimeofday(&tv, NULL) < 0) {
 			err(1, "gettimeofday");
@@ -590,6 +622,7 @@ edisplay_app_run(void)
 		tv_prev = tv;
 		ticktime = tv_diff.tv_sec * 1000 + tv_diff.tv_usec / 1000;
 		lv_tick_inc(ticktime);
+		edisp_lvgl_unlock();
 		usleep(10 * 1000);
 	}
 }

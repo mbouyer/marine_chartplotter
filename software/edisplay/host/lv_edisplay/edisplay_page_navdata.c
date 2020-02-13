@@ -63,6 +63,7 @@ edisp_set_cogsog_timeout(lv_task_t *task)
 void
 edisp_set_cogsog(int cog, int sog)
 {
+	edisp_lvgl_lock();
 	int kn = sog * 360 / 1852; /* kn * 10 */
 	char cogs[6];
 	char sogs[6];
@@ -78,6 +79,7 @@ edisp_set_cogsog(int cog, int sog)
 	lv_label_set_text(vittf1_value, sogs);
 
 	lv_task_reset(set_cogsog_task);
+	edisp_lvgl_unlock();
 }
 
 static void
@@ -88,6 +90,7 @@ edisp_set_xte_timeout(lv_task_t *task)
 void
 edisp_set_xte(int xte)
 {
+	edisp_lvgl_lock();
 	char buf[11];
 	char l, r;
 	l = r = ' ';
@@ -109,6 +112,7 @@ edisp_set_xte(int xte)
 	lv_label_set_text(route_value, buf);
 
 	lv_task_reset(set_xte_task);
+	edisp_lvgl_unlock();
 }
 
 static void
@@ -120,6 +124,7 @@ edisp_set_navdata_timeout(lv_task_t *task)
 void
 edisp_set_navdata(int capp, int distp)
 {
+	edisp_lvgl_lock();
 	char buf[10];
 	snprintf(buf, 10, "%3d" DEGSTR, capp);
 	lv_label_set_text(capp_value, buf);
@@ -133,6 +138,7 @@ edisp_set_navdata(int capp, int distp)
 	}
 	lv_label_set_text(distp_value, buf);
 	lv_task_reset(set_navdata_task);
+	edisp_lvgl_unlock();
 }
 
 static void
