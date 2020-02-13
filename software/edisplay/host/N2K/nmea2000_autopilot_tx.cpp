@@ -34,7 +34,12 @@ bool
 private_command_engage_tx::senddata(double heading, uint8_t auto_mode, uint8_t params_slot)
 {
 	bool ret;
-	int162frame(deg2rad(heading), 0);
+	int headingr;
+	if (heading < 0)
+		headingr = HEADING_INVALID;
+	else
+		headingr = deg2rad(heading);
+	int162frame(headingr, 0);
 	uint82frame(auto_mode, 2);
 	uint82frame(params_slot, 3);
 	valid = true;
