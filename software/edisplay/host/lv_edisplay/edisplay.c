@@ -74,6 +74,7 @@ static enum {
 	REV
 } backlight_status = ON;
 static int backlight_pwm = 50;
+static int old_backlight_pwm = 50;
 
 static void
 set_backlight(void)
@@ -304,8 +305,13 @@ static void
 btn_cancel_click_action(lv_obj_t * btn, lv_event_t event)
 {
 
-	   printf("buttons[BUTTON_CANCEL].button event ");
-	   print_ev(event);
+	switch(event) {
+	   case LV_EVENT_SHORT_CLICKED:
+		lv_group_send_data(encg, (void*)LV_KEY_ESC);
+		return;
+	}
+	printf("buttons[BUTTON_CANCEL].button event ");
+	print_ev(event);
 	printf("\n");
 }
 
@@ -340,6 +346,7 @@ enc_group_close(lv_obj_t *obj)
 static void
 light_action(lv_obj_t *slide, lv_event_t event)
 {
+	int key;
 	switch(event) {
 	case LV_EVENT_SHORT_CLICKED:
 		enc_group_close(slide);
@@ -348,10 +355,19 @@ light_action(lv_obj_t *slide, lv_event_t event)
 		backlight_pwm = lv_slider_get_value(slide);
 		set_backlight();
 		break;
+	case LV_EVENT_KEY:
+		key = *((uint32_t *)lv_event_get_data());
+		if (key == LV_KEY_ESC) {
+			backlight_pwm = old_backlight_pwm;
+			set_backlight();
+			enc_group_close(slide);
+			return;
+		}
+		/* FALLTHROUGH */
 	default:
-		   printf("light_action: ");
-		   print_ev(event);
-		   printf("\n");
+		printf("light_action: ");
+		print_ev(event);
+		printf("\n");
 	}
 }
 
@@ -366,6 +382,7 @@ light_slide(edisp_page_t *epage)
 	lv_obj_align(slide, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
 	lv_group_set_editing(encg, false);
 	enc_group_focus(slide);
+	old_backlight_pwm = backlight_pwm;
 }
 
 static void
@@ -432,7 +449,6 @@ edisplay_buttons_create(void)
 	buttons[BUTTON_MOB].label =
 	    lv_label_create(buttons[BUTTON_MOB].button, NULL);
 	lv_label_set_static_text(buttons[BUTTON_MOB].label, "MoB");
-	lv_coord_t w = lv_obj_get_width(buttons[BUTTON_MOB].button);
 	lv_coord_t h = lv_obj_get_height(buttons[BUTTON_MOB].button);
 	lv_obj_align(buttons[BUTTON_MOB].button, NULL,
 	    LV_ALIGN_OUT_TOP_LEFT, 0, h);
@@ -449,7 +465,6 @@ edisplay_buttons_create(void)
 	buttons[BUTTON_LIGHT].label =
 	    lv_label_create(buttons[BUTTON_LIGHT].button, NULL);
 	lv_label_set_static_text(buttons[BUTTON_LIGHT].label, "light");
-	w = lv_obj_get_width(buttons[BUTTON_LIGHT].button);
 	h = lv_obj_get_height(buttons[BUTTON_LIGHT].button);
 	lv_obj_align(buttons[BUTTON_LIGHT].button, NULL,
 	    LV_ALIGN_OUT_TOP_RIGHT, 0, h);
@@ -465,7 +480,6 @@ edisplay_buttons_create(void)
 	buttons[BUTTON_PAGE].label =
 	    lv_label_create(buttons[BUTTON_PAGE].button, NULL);
 	lv_label_set_static_text(buttons[BUTTON_PAGE].label, "page");
-	w = lv_obj_get_width(buttons[BUTTON_PAGE].button);
 	h = lv_obj_get_height(buttons[BUTTON_PAGE].button);
 	lv_obj_align(buttons[BUTTON_PAGE].button, NULL,
 	    LV_ALIGN_OUT_BOTTOM_LEFT, 0, -h);
@@ -482,7 +496,6 @@ edisplay_buttons_create(void)
 	buttons[BUTTON_CANCEL].label =
 	    lv_label_create(buttons[BUTTON_CANCEL].button, NULL);
 	lv_label_set_static_text(buttons[BUTTON_CANCEL].label, "cancel");
-	w = lv_obj_get_width(buttons[BUTTON_CANCEL].button);
 	h = lv_obj_get_height(buttons[BUTTON_CANCEL].button);
 	lv_obj_align(buttons[BUTTON_CANCEL].button, NULL,
 	    LV_ALIGN_OUT_BOTTOM_RIGHT, 0, -h);
