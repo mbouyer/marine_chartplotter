@@ -33,6 +33,7 @@
 
 static lv_obj_t *cap_value;
 static lv_obj_t *autocap_value;
+static lv_obj_t *autoslot_value;
 static lv_obj_t *roll_value;
 static lv_obj_t *capf0_value;
 static lv_obj_t *vittf0_value;
@@ -87,6 +88,7 @@ static void
 edisp_set_auto_timeout(lv_task_t *task)
 {
 	lv_label_set_text(autocap_value, "---" DEGSTR);
+	lv_label_set_text(autoslot_value, "--");
 	auto_mode = AUTO_INVALID;
 	auto_heading = -1;
 }
@@ -102,22 +104,20 @@ edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
 		edisp_lvgl_unlock();
 		return; /* nothing changed */
 	}
+	snprintf(buf, 6, "P%1d", slot);
+	lv_label_set_text(autoslot_value, buf);
+	auto_slot = slot;
+	auto_mode = mode;
 	switch(mode) {
 	case AUTO_OFF:
-		auto_slot = slot;
-		auto_mode = mode;
 		auto_heading = -1;
 		lv_label_set_text(autocap_value, "OFF ");
 		break;
 	case AUTO_STANDBY:
-		auto_slot = slot;
-		auto_mode = mode;
 		lv_label_set_text(autocap_value, "STBY");
 		break;
 	case AUTO_HEAD:
 		auto_heading = heading;
-		auto_slot = slot;
-		auto_mode = mode;
 		snprintf(buf, 6, "%3d" DEGSTR, (int)heading);
 		lv_label_set_text(autocap_value, buf);
 		break;
@@ -229,6 +229,10 @@ edisp_create_autopilot()
 	lv_obj_align(roll_label, cap_value, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
 	lv_obj_align(roll_value, roll_label, LV_ALIGN_OUT_RIGHT_MID, 3, 0);
 
+	autoslot_value = lv_label_create(edisp_page, NULL);
+	lv_label_set_style(autoslot_value, LV_LABEL_STYLE_MAIN, &style_medium_text);
+	lv_label_set_text(autoslot_value, "--");
+	lv_obj_align(autoslot_value, autocap_value, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
 	capf0_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(capf0_value, LV_LABEL_STYLE_MAIN, &style_large_text);
 	lv_label_set_text(capf0_value, "---" DEGSTR);
