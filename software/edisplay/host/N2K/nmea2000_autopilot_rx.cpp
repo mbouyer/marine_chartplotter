@@ -41,6 +41,7 @@ bool private_command_status_rx::handle(const nmea2000_frame &f)
 		setdst_auto(f.getsrc());
 		addr = f.getsrc();
 	}
+	edisp_set_auto_status(mode, rad2deg(heading), error, slot);
 	return true;
 }
 
@@ -72,5 +73,20 @@ bool private_remote_control_rx::handle(const nmea2000_frame &f)
 {
 	char type = f.frame2uint8(0);
 	char subtype = f.frame2uint8(1);
+	switch(type) {
+	case CONTROL_LIGHT:
+		switch(subtype) {
+		case CONTROL_LIGHT_OFF:
+			edisp_set_light(LIGHT_MODE_OFF);
+			break;
+		case CONTROL_LIGHT_ON:
+			edisp_set_light(LIGHT_MODE_ON);
+			break;
+		case CONTROL_LIGHT_REV:
+			edisp_set_light(LIGHT_MODE_REV);
+			break;
+		}
+		break;
+	}
 	return true;
 }

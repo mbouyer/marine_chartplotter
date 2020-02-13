@@ -28,7 +28,6 @@
 #include <sys/time.h>
 #include "lvgl/lvgl.h"
 #include "edisplay_pages.h"
-#include "edisplay_font.h"
 #include "hal.h"
 
 static lv_obj_t *capp_value;

@@ -72,6 +72,25 @@ class nmea2000_desc {
 #define PRIVATE_COMMAND_FACTORS_REQUEST	39424U
 #define PRIVATE_COMMAND_ACUATOR 38400U
 #define PRIVATE_REMOTE_CONTROL	39680U
+#define 	CONTROL_MOB     0x00
+#define 	CONTROL_MOB_MARK        0x00
+#define 	CONTROL_MOB_SIZE 2
+#define 	CONTROL_LIGHT   0x01
+#define 	CONTROL_LIGHT_OFF       0x00
+#define 	CONTROL_LIGHT_ON        0x01
+#define 	CONTROL_LIGHT_VAL       0x02  
+#define 	CONTROL_LIGHT_REV       0x03
+#define 	CONTROL_LIGHT_SIZE     2      
+#define 	CONTROL_LIGHT_VAL_SIZE 3      
+#define 	CONTROL_RESET   0x02
+#define 	CONTROL_RESET_SIZE 1
+#define 	CONTROL_MUTE    0x02
+#define 	CONTROL_MUTE_SIZE 2
+#define 	CONTROL_BEEP    0x04
+#define 	CONTROL_BEEP_SHORT      0x00  
+#define 	CONTROL_BEEP_LONG       0x01  
+#define 	CONTROL_BEEP_SIZE 2
+#define 	CONTROL_REMOTE_RADIO    0x05  
 
 inline double rad2deg(int rad)
 {

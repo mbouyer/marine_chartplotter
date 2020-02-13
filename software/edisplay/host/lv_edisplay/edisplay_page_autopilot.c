@@ -28,7 +28,7 @@
 #include <sys/time.h>
 #include "lvgl/lvgl.h"
 #include "edisplay_pages.h"
-#include "edisplay_font.h"
+#include "edisplay_data.h"
 #include "hal.h"
 
 static lv_obj_t *cap_value;
@@ -38,6 +38,11 @@ static lv_obj_t *capf0_value;
 static lv_obj_t *vittf0_value;
 
 static lv_task_t *set_attitude_task;
+static lv_task_t *set_auto_task;
+
+static uint8_t auto_mode;
+static double auto_heading;
+static double auto_slot;
 
 static void edisp_create_autopilot(void);
 
@@ -72,6 +77,39 @@ edisp_set_attitude(int cap, int roll)
 }
 
 static void
+edisp_set_auto_timeout(lv_task_t *task)
+{
+	lv_label_set_text(autocap_value, "---" DEGSTR);
+	auto_mode = 0xff;
+}
+
+void
+edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
+{
+	char buf[6];
+	lv_task_reset(set_auto_task);
+	/* XXX handle errors */
+	if (mode == auto_mode && heading == auto_heading && slot == auto_slot)
+		return; /* nothing changed */
+	switch(mode) {
+	case AUTO_OFF:
+		lv_label_set_text(autocap_value, "OFF ");
+		break;
+	case AUTO_STANDBY:
+		auto_heading = heading;
+		auto_slot = slot;
+		lv_label_set_text(autocap_value, "STBY");
+		break;
+	case AUTO_HEAD:
+		auto_heading = heading;
+		auto_slot = slot;
+		snprintf(buf, 6, "%3d" DEGSTR, heading);
+		lv_label_set_text(autocap_value, buf);
+		break;
+	}
+}
+
+static void
 edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
 {
 	        /* switch(event) {
@@ -101,6 +139,7 @@ edisp_create_autopilot()
 	h = lv_obj_get_height(autocap_value);
 	lv_obj_align(autocap_label, cap_value, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
 	lv_obj_align(autocap_value, autocap_label, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+	auto_mode = 0xff;
 
 	lv_obj_t *roll_label = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(roll_label, LV_LABEL_STYLE_MAIN, &style_small_text);
@@ -137,6 +176,9 @@ edisp_create_autopilot()
 
 	set_attitude_task = lv_task_create(
 	    edisp_set_attitude_timeout, 2000, LV_TASK_PRIO_MID, NULL);
+	set_auto_task = lv_task_create(
+	    edisp_set_auto_timeout, 2000, LV_TASK_PRIO_MID, NULL);
+
 }
 
 void

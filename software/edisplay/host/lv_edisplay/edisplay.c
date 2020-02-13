@@ -28,6 +28,7 @@
 #include <sys/time.h>
 #include "lvgl/lvgl.h"
 #include "edisplay.h"
+#include "edisplay_data.h"
 #include "edisplay_pages.h"
 #include "edisplay_font.h"
 #include "hal.h"
@@ -70,7 +71,7 @@ static struct button {
 static enum {
 	OFF = 0,
 	ON,
-	INV
+	REV
 } backlight_status = ON;
 static int backlight_pwm = 50;
 
@@ -84,10 +85,27 @@ set_backlight(void)
 	case ON:
 		hal_set_backlight(1, 0, backlight_pwm);
 		break;
-	case INV:
+	case REV:
 		hal_set_backlight(1, 1, backlight_pwm);
 		break;
 	}
+}
+
+void
+edisp_set_light(int mode)
+{
+	switch(mode) {
+	case LIGHT_MODE_OFF:
+		backlight_status = OFF;
+		break;
+	case LIGHT_MODE_ON:
+		backlight_status = ON;
+		break;
+	case LIGHT_MODE_REV:
+		backlight_status = REV;
+		break;
+	}
+	set_backlight();
 }
 
 void
@@ -211,9 +229,16 @@ back_click_action(lv_obj_t * obj, lv_event_t event)
 static void
 btn_mob_click_action(lv_obj_t * btn, lv_event_t event)
 {
+	switch(event) {
+	   case LV_EVENT_LONG_PRESSED:
+		if (!n2ks_control_mob()) 
+			printf("MOB failed\n");
+		return;
+	}
+		
 
-	   printf("buttons[BUTTON_MOB].button event ");
-	   print_ev(event);
+	printf("buttons[BUTTON_MOB].button event ");
+	print_ev(event);
 	printf("\n");
 }
 
@@ -229,12 +254,15 @@ btn_light_click_action(lv_obj_t * btn, lv_event_t event)
 		switch (backlight_status) {
 		case OFF:
 			backlight_status = ON;
+			n2ks_control_light_mode(LIGHT_MODE_ON);
 			break;
 		case ON:
-			backlight_status = INV;
+			backlight_status = REV;
+			n2ks_control_light_mode(LIGHT_MODE_REV);
 			break;
-		case INV:
+		case REV:
 			backlight_status = OFF;
+			n2ks_control_light_mode(LIGHT_MODE_OFF);
 			break;
 		}
 		set_backlight();

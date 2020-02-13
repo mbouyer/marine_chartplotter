@@ -33,10 +33,29 @@ void edisp_set_attitude(int, int);
 void edisp_set_cogsog(int, int);
 void edisp_set_xte(int);
 void edisp_set_navdata(int, int);
+void edisp_set_light(int);
+#define LIGHT_MODE_OFF 0
+#define LIGHT_MODE_ON 1
+#define LIGHT_MODE_REV 2
 
-/**********************
- *      MACROS
- **********************/
+void edisp_set_auto_status(uint8_t, double, uint8_t, uint8_t);
+/* has to match nmea2000_pgn.h value from canbus_autopilot */
+#define AUTO_OFF	0x0000
+#define AUTO_STANDBY	0x0001
+#define AUTO_HEAD	0x0002
+
+#define AUTO_ERR_OUTPUT		0x01
+#define AUTO_ERR_OVERLOAD	0x02
+#define AUTO_ERR_RUDDER		0x04
+#define AUTO_ERR_ATTITUDE	0x08
+
+bool n2ks_auto_engage(double, uint8_t, uint8_t);
+
+bool n2ks_auto_errack(uint8_t);
+bool n2ks_auto_factors(int8_t, int, int, int);
+bool n2ks_auto_factorsreq(int8_t);
+bool n2ks_control_mob(void);
+bool n2ks_control_light_mode(int);
 
 #ifdef __cplusplus
 } /* extern "C" */
