@@ -363,7 +363,6 @@ light_action(lv_obj_t *slide, lv_event_t event)
 			enc_group_close(slide);
 			return;
 		}
-		/* FALLTHROUGH */
 	default:
 		printf("light_action: ");
 		print_ev(event);
@@ -383,20 +382,30 @@ light_slide(edisp_page_t *epage)
 	lv_group_set_editing(encg, false);
 	enc_group_focus(slide);
 	old_backlight_pwm = backlight_pwm;
+	if (backlight_status == OFF) {
+		backlight_status = ON;
+		n2ks_control_light_mode(LIGHT_MODE_ON);
+	}
 }
 
 static void
 page_action(lv_obj_t *list, lv_event_t event)
 {
+	int key;
+	int value;
 	switch(event) {
 	case LV_EVENT_VALUE_CHANGED:
-		{
-		int value = lv_ddlist_get_selected(list);
+		value = lv_ddlist_get_selected(list);
 		printf("new page %d\n", value);
 		enc_group_close(list);
 		switch_to_page(value);
 		break;
+	case LV_EVENT_KEY:
+		key = *((uint32_t *)lv_event_get_data());
+		if (key == LV_KEY_ESC) {
+			enc_group_close(list);
 		}
+		break;
 	}
 }
 
