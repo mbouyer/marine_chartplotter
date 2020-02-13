@@ -307,7 +307,7 @@ btn_cancel_click_action(lv_obj_t * btn, lv_event_t event)
 
 	switch(event) {
 	   case LV_EVENT_SHORT_CLICKED:
-		lv_group_send_data(encg, (void*)LV_KEY_ESC);
+		lv_group_send_data(encg, LV_KEY_ESC);
 		return;
 	}
 	printf("buttons[BUTTON_CANCEL].button event ");
