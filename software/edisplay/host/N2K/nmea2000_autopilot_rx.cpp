@@ -37,11 +37,17 @@ bool private_command_status_rx::handle(const nmea2000_frame &f)
 	uint8_t r_mode = f.frame2uint8(3);
 	int8_t rudder = f.frame2uint8(4);
 	uint8_t r_slot = f.frame2uint8(5);
+	double headingd;
 	if (addr != f.getsrc()) {
 		setdst_auto(f.getsrc());
 		addr = f.getsrc();
 	}
-	edisp_set_auto_status(mode, rad2deg(heading), error, slot);
+	if (heading == HEADING_INVALID) 
+		headingd = -1;
+	else
+		headingd = rad2deg(heading);
+
+	edisp_set_auto_status(mode, headingd, error, slot);
 	return true;
 }
 
