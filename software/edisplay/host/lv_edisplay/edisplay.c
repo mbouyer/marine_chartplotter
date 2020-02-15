@@ -38,7 +38,7 @@
 static void page_list(void);
 static void light_slide(edisp_page_t *);
 
-static void enc_group_focus(lv_obj_t *);
+static void enc_group_focus(lv_obj_t *, bool);
 static void enc_group_defocus(lv_obj_t *);
 
 static pthread_mutex_t edisp_lvgl_mtx;
@@ -119,7 +119,7 @@ activate_page(edisp_page_t *epage)
 {
 	if (epage->epage_page != NULL) {
 		lv_scr_load(epage->epage_page);
-		enc_group_focus(epage->epage_page);
+		enc_group_focus(epage->epage_page, false);
 	}
 }
 
@@ -321,12 +321,13 @@ btn_cancel_click_action(lv_obj_t * btn, lv_event_t event)
 }
 
 static void
-enc_group_focus(lv_obj_t *obj)
+enc_group_focus(lv_obj_t *obj, bool force)
 {
 	lv_group_set_editing(encg, false);
 	lv_group_focus_freeze(encg, false);
 	lv_group_add_obj(encg, obj);
-	lv_group_focus_obj(obj);
+	if (lv_group_get_focused(encg) == NULL || force)
+		lv_group_focus_obj(obj);
 	lv_group_set_editing(encg, true);
 	lv_group_focus_freeze(encg, true);
 }
@@ -337,8 +338,10 @@ enc_group_defocus(lv_obj_t *obj)
 	lv_group_set_editing(encg, false);
 	lv_group_focus_freeze(encg, false);
 	lv_group_remove_obj(obj);
-	lv_group_set_editing(encg, true);
-	lv_group_focus_freeze(encg, true);
+	if (lv_group_get_focused(encg) != NULL) {
+		lv_group_set_editing(encg, true);
+		lv_group_focus_freeze(encg, true);
+	}
 }
 
 static void
@@ -385,7 +388,7 @@ light_slide(edisp_page_t *epage)
 	lv_obj_move_foreground(slide);
 	lv_obj_align(slide, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
 	lv_group_set_editing(encg, false);
-	enc_group_focus(slide);
+	enc_group_focus(slide, true);
 	old_backlight_pwm = backlight_pwm;
 	if (backlight_status == OFF) {
 		backlight_status = ON;
@@ -434,7 +437,7 @@ page_list(void)
 	lv_ddlist_set_stay_open(list, true);
 	lv_obj_move_foreground(list);
 	lv_obj_align(list, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
-	enc_group_focus(list);
+	enc_group_focus(list, true);
 }
 
 static void
@@ -597,7 +600,6 @@ edisplay_app_init(void)
 			epages[i]->epage_init();
 	}
 
-	lv_group_add_obj(encg, lv_top);
 	current_page = 0;
 	epages[current_page]->epage_activate(epages[current_page]);
 }
