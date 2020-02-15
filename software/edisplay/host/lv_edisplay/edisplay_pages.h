@@ -38,6 +38,8 @@ extern lv_style_t style_small_text;
 
 void activate_page(edisp_page_t *);
 void deactivate_page(edisp_page_t *);
+void transient_open(lv_obj_t *);
+void transient_close(lv_obj_t *);
 
 void print_ev(lv_event_t event);
 

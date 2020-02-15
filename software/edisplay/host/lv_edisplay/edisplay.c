@@ -344,7 +344,7 @@ enc_group_defocus(lv_obj_t *obj)
 	}
 }
 
-static void
+void
 transient_open(lv_obj_t *obj)
 {
 	lv_obj_move_foreground(obj);
@@ -352,7 +352,7 @@ transient_open(lv_obj_t *obj)
 	enc_group_focus(obj, true);
 }
 
-static void
+void
 transient_close(lv_obj_t *obj)
 {
 	enc_group_defocus(obj);
