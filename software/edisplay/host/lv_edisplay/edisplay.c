@@ -359,6 +359,19 @@ transient_close(lv_obj_t *obj)
 	lv_obj_del_async(obj);
 }
 
+lv_obj_t *
+transient_list(const char *names, int select,
+    void (*action)(lv_obj_t *, lv_event_t))
+{
+	lv_obj_t *list = lv_ddlist_create(lv_top_trs, NULL);
+	lv_ddlist_set_options(list, names);
+	lv_ddlist_set_selected(list, select);
+	lv_obj_set_event_cb(list, action);
+	lv_ddlist_set_stay_open(list, true);
+	transient_open(list);
+	return list;
+}
+
 static void
 light_action(lv_obj_t *slide, lv_event_t event)
 {
@@ -434,13 +447,8 @@ page_list(void)
 			strlcat(pagesnames, "\n", sizeof(pagesnames));
 		strlcat(pagesnames, epages[i]->epage_menu, sizeof(pagesnames));
 	}
+	transient_list(pagesnames, current_page, page_action);
 
-	lv_obj_t *list = lv_ddlist_create(lv_top_trs, NULL);
-	lv_ddlist_set_options(list, pagesnames);
-	lv_ddlist_set_selected(list, current_page);
-	lv_obj_set_event_cb(list, page_action);
-	lv_ddlist_set_stay_open(list, true);
-	transient_open(list);
 }
 
 static void
