@@ -348,7 +348,6 @@ void
 transient_open(lv_obj_t *obj)
 {
 	lv_obj_move_foreground(obj);
-	lv_obj_align(obj, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
 	enc_group_focus(obj, true);
 }
 
@@ -368,7 +367,9 @@ transient_list(const char *names, int select,
 	lv_ddlist_set_selected(list, select);
 	lv_obj_set_event_cb(list, action);
 	lv_ddlist_set_stay_open(list, true);
+	lv_coord_t h = lv_obj_get_height(list);
 	transient_open(list);
+	lv_obj_align(list, lv_top_trs, LV_ALIGN_CENTER, 0, -h/2);
 	return list;
 }
 
@@ -407,6 +408,7 @@ light_slide(edisp_page_t *epage)
 	lv_slider_set_value(slide, backlight_pwm, LV_ANIM_OFF);
 	lv_obj_set_event_cb(slide, light_action);
 	transient_open(slide);
+	lv_obj_align(slide, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
 	old_backlight_pwm = backlight_pwm;
 	if (backlight_status == OFF) {
 		backlight_status = ON;
