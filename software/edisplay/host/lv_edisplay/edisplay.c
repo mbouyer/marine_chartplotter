@@ -38,7 +38,7 @@
 static void page_list(void);
 static void light_slide(edisp_page_t *);
 
-static void enc_group_focus(lv_obj_t *);
+static void enc_group_focus(lv_obj_t *, bool);
 static void enc_group_defocus(lv_obj_t *);
 
 static pthread_mutex_t edisp_lvgl_mtx;
@@ -119,7 +119,7 @@ activate_page(edisp_page_t *epage)
 {
 	if (epage->epage_page != NULL) {
 		lv_scr_load(epage->epage_page);
-		enc_group_focus(epage->epage_page);
+		enc_group_focus(epage->epage_page, false);
 	}
 }
 
@@ -321,12 +321,13 @@ btn_cancel_click_action(lv_obj_t * btn, lv_event_t event)
 }
 
 static void
-enc_group_focus(lv_obj_t *obj)
+enc_group_focus(lv_obj_t *obj, bool force)
 {
 	lv_group_set_editing(encg, false);
 	lv_group_focus_freeze(encg, false);
 	lv_group_add_obj(encg, obj);
-	lv_group_focus_obj(obj);
+	if (lv_group_get_focused(encg) == NULL || force)
+		lv_group_focus_obj(obj);
 	lv_group_set_editing(encg, true);
 	lv_group_focus_freeze(encg, true);
 }
@@ -337,15 +338,39 @@ enc_group_defocus(lv_obj_t *obj)
 	lv_group_set_editing(encg, false);
 	lv_group_focus_freeze(encg, false);
 	lv_group_remove_obj(obj);
-	lv_group_set_editing(encg, true);
-	lv_group_focus_freeze(encg, true);
+	if (lv_group_get_focused(encg) != NULL) {
+		lv_group_set_editing(encg, true);
+		lv_group_focus_freeze(encg, true);
+	}
 }
 
-static void
-enc_group_close(lv_obj_t *obj)
+void
+transient_open(lv_obj_t *obj)
+{
+	lv_obj_move_foreground(obj);
+	enc_group_focus(obj, true);
+}
+
+void
+transient_close(lv_obj_t *obj)
 {
 	enc_group_defocus(obj);
 	lv_obj_del_async(obj);
+}
+
+lv_obj_t *
+transient_list(const char *names, int select,
+    void (*action)(lv_obj_t *, lv_event_t))
+{
+	lv_obj_t *list = lv_ddlist_create(lv_top_trs, NULL);
+	lv_ddlist_set_options(list, names);
+	lv_ddlist_set_selected(list, select);
+	lv_obj_set_event_cb(list, action);
+	lv_ddlist_set_stay_open(list, true);
+	lv_coord_t h = lv_obj_get_height(list);
+	transient_open(list);
+	lv_obj_align(list, lv_top_trs, LV_ALIGN_CENTER, 0, -h/2);
+	return list;
 }
 
 static void
@@ -354,7 +379,7 @@ light_action(lv_obj_t *slide, lv_event_t event)
 	int key;
 	switch(event) {
 	case LV_EVENT_SHORT_CLICKED:
-		enc_group_close(slide);
+		transient_close(slide);
 		break;
 	case LV_EVENT_VALUE_CHANGED:
 		backlight_pwm = lv_slider_get_value(slide);
@@ -365,7 +390,7 @@ light_action(lv_obj_t *slide, lv_event_t event)
 		if (key == LV_KEY_ESC) {
 			backlight_pwm = old_backlight_pwm;
 			set_backlight();
-			enc_group_close(slide);
+			transient_close(slide);
 			return;
 		}
 	default:
@@ -382,10 +407,8 @@ light_slide(edisp_page_t *epage)
 	lv_slider_set_range(slide, 10, 100);
 	lv_slider_set_value(slide, backlight_pwm, LV_ANIM_OFF);
 	lv_obj_set_event_cb(slide, light_action);
-	lv_obj_move_foreground(slide);
+	transient_open(slide);
 	lv_obj_align(slide, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
-	lv_group_set_editing(encg, false);
-	enc_group_focus(slide);
 	old_backlight_pwm = backlight_pwm;
 	if (backlight_status == OFF) {
 		backlight_status = ON;
@@ -402,13 +425,13 @@ page_action(lv_obj_t *list, lv_event_t event)
 	case LV_EVENT_VALUE_CHANGED:
 		value = lv_ddlist_get_selected(list);
 		printf("new page %d\n", value);
-		enc_group_close(list);
+		transient_close(list);
 		switch_to_page(value);
 		break;
 	case LV_EVENT_KEY:
 		key = *((uint32_t *)lv_event_get_data());
 		if (key == LV_KEY_ESC) {
-			enc_group_close(list);
+			transient_close(list);
 		}
 		break;
 	}
@@ -426,15 +449,8 @@ page_list(void)
 			strlcat(pagesnames, "\n", sizeof(pagesnames));
 		strlcat(pagesnames, epages[i]->epage_menu, sizeof(pagesnames));
 	}
+	transient_list(pagesnames, current_page, page_action);
 
-	lv_obj_t *list = lv_ddlist_create(lv_top_trs, NULL);
-	lv_ddlist_set_options(list, pagesnames);
-	lv_ddlist_set_selected(list, current_page);
-	lv_obj_set_event_cb(list, page_action);
-	lv_ddlist_set_stay_open(list, true);
-	lv_obj_move_foreground(list);
-	lv_obj_align(list, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
-	enc_group_focus(list);
 }
 
 static void
@@ -597,7 +613,6 @@ edisplay_app_init(void)
 			epages[i]->epage_init();
 	}
 
-	lv_group_add_obj(encg, lv_top);
 	current_page = 0;
 	epages[current_page]->epage_activate(epages[current_page]);
 }

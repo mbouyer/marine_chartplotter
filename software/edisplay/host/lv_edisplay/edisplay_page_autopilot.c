@@ -152,6 +152,44 @@ edisp_autopilot_startstop(bool active)
 }
 
 static void
+auto_slot_action(lv_obj_t *list, lv_event_t event)
+{
+	int key;
+	int value;
+	switch(event) {
+	case LV_EVENT_VALUE_CHANGED:
+		value = lv_ddlist_get_selected(list);
+		printf("new slot %d\n", value);
+		transient_close(list);
+		//switch_to_page(value);
+		break;
+	case LV_EVENT_KEY:
+		key = *((uint32_t *)lv_event_get_data());
+		if (key == LV_KEY_ESC) {
+			transient_close(list);
+		}
+		break;
+	}
+}
+
+static void
+auto_slot_list(void)
+{
+	char slotnames[100];
+
+	slotnames[0] = '\0';
+
+	for (int i = 0; i < 6; i++) {
+		if (i > 0)
+			strlcat(slotnames, "\n", sizeof(slotnames));
+		snprintf(&slotnames[strlen(slotnames)], 
+		    sizeof(slotnames) - strlen(slotnames),
+		    "P%d", i);
+	}
+	transient_list(slotnames, auto_slot, auto_slot_action);
+}
+
+static void
 edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
 {
 	int key;
@@ -188,6 +226,9 @@ edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
 			}
 			n2ks_auto_engage(new_head, AUTO_HEAD, auto_slot);
 		}
+		return;
+	case LV_EVENT_LONG_PRESSED:
+		auto_slot_list();
 		return;
 	}
 	printf("autopilot event ");
