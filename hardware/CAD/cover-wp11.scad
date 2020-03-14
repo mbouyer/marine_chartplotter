@@ -71,7 +71,7 @@ module murs() {
 }
 
 module conges() {
-	translate([0,0,base_ep]) union() {
+	translate([0,0,base_ep/2]) union() {
 		translate([longueur/2, 0, 0]) rotate([90,90,0]) quart_rond(largeur-rayon*2);
 		translate([-longueur/2, 0, 0]) rotate([-90,90,0]) quart_rond(largeur-rayon*2);
 		translate([0, largeur/2, 0]) rotate([0,90,0]) quart_rond(longueur-rayon*2);
@@ -99,3 +99,4 @@ all();
 // 	cube([longueur+10, largeur+10, (hauteur-5) * 2], center=true);
 // }
 // projection(cut=true) translate([0,0, -(base_ep+conge+0.1)]) all();
+// projection(cut=true) rotate([90, 0, 0]) all();
