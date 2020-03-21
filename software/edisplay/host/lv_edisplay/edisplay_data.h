@@ -60,6 +60,8 @@ bool n2ks_control_light_mode(int);
 
 void n2k_set_command_address(int);
 
+#define NPARAMS 6
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

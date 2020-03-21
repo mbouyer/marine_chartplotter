@@ -36,6 +36,12 @@ static lv_obj_t *route_value;
 static lv_obj_t *capf1_value;
 static lv_obj_t *vittf1_value;
 
+int received_cog;
+int received_sog;
+int received_xte;
+int received_capp;
+int received_distp;
+
 static lv_task_t *set_cogsog_task;
 static lv_task_t *set_xte_task;
 static lv_task_t *set_navdata_task;
@@ -63,11 +69,21 @@ edisp_set_cogsog_timeout(lv_task_t *task)
 void
 edisp_set_cogsog(int cog, int sog)
 {
-	edisp_lvgl_lock();
-	int kn = sog * 360 / 1852; /* kn * 10 */
+	received_cog = cog;
+	received_sog = sog;
+	lv_event_send(capf1_value, LV_EVENT_REFRESH, NULL);
+}
+
+static void
+edisp_cogsog_cb(lv_obj_t *list, lv_event_t event)
+{
+	if (event != LV_EVENT_REFRESH)
+		return;
+
+	int kn = received_sog * 360 / 1852; /* kn * 10 */
 	char cogs[6];
 	char sogs[6];
-	snprintf(cogs, 6, "%3d" DEGSTR, cog);
+	snprintf(cogs, 6, "%3d" DEGSTR, received_cog);
 
 	if (kn > 100) {
 		snprintf(sogs, 6, "%3dn", kn / 10);
@@ -79,7 +95,6 @@ edisp_set_cogsog(int cog, int sog)
 	lv_label_set_text(vittf1_value, sogs);
 
 	lv_task_reset(set_cogsog_task);
-	edisp_lvgl_unlock();
 }
 
 static void
@@ -87,12 +102,21 @@ edisp_set_xte_timeout(lv_task_t *task)
 {
 	lv_label_set_text(route_value, "  ----mn  ");
 }
+
 void
 edisp_set_xte(int xte)
 {
-	edisp_lvgl_lock();
+	received_xte = xte;
+	lv_event_send(route_value, LV_EVENT_REFRESH, NULL);
+}
+
+static void
+edisp_xte_cb(lv_obj_t *list, lv_event_t event)
+{
 	char buf[11];
 	char l, r;
+	int xte = received_xte;
+
 	l = r = ' ';
 
 	if (xte < 0) {
@@ -112,7 +136,6 @@ edisp_set_xte(int xte)
 	lv_label_set_text(route_value, buf);
 
 	lv_task_reset(set_xte_task);
-	edisp_lvgl_unlock();
 }
 
 static void
@@ -124,21 +147,27 @@ edisp_set_navdata_timeout(lv_task_t *task)
 void
 edisp_set_navdata(int capp, int distp)
 {
-	edisp_lvgl_lock();
+	received_capp = capp;
+	received_distp = distp;
+	lv_event_send(capp_value, LV_EVENT_REFRESH, NULL);
+}
+
+static void
+edisp_navdata_cb(lv_obj_t *list, lv_event_t event)
+{
 	char buf[10];
-	snprintf(buf, 10, "%3d" DEGSTR, capp);
+	snprintf(buf, 10, "%3d" DEGSTR, received_capp);
 	lv_label_set_text(capp_value, buf);
-	if (distp > 1852000) { /* 10mn */
-		snprintf(buf, 10, "%4dmn", distp / 185200);
-	} else if (distp > 18520UL) { /* 0.1mn */
-		snprintf(buf, 10, "%1d.%02dmn", (distp / 185200),
-		    (distp % 185200) / 1852);
+	if (received_distp > 1852000) { /* 10mn */
+		snprintf(buf, 10, "%4dmn", received_distp / 185200);
+	} else if (received_distp > 18520UL) { /* 0.1mn */
+		snprintf(buf, 10, "%1d.%02dmn", (received_distp / 185200),
+		    (received_distp % 185200) / 1852);
 	} else {
-		snprintf(buf, 10, " %3dm ", distp / 100);
+		snprintf(buf, 10, " %3dm ", received_distp / 100);
 	}
 	lv_label_set_text(distp_value, buf);
 	lv_task_reset(set_navdata_task);
-	edisp_lvgl_unlock();
 }
 
 static void
@@ -150,6 +179,7 @@ edisp_create_navdata()
 	int w = lv_obj_get_width(capp_value);
 	int h = lv_obj_get_height(capp_value);
 	lv_obj_align(capp_value, NULL, LV_ALIGN_OUT_TOP_LEFT, 5, h + 10);
+	lv_obj_set_event_cb(capp_value, edisp_navdata_cb);
 
 	distp_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(distp_value, LV_LABEL_STYLE_MAIN, &style_large_text);
@@ -168,11 +198,13 @@ edisp_create_navdata()
 	h = lv_obj_get_height(route_value);
 	lv_obj_align(route_label, capp_value, LV_ALIGN_OUT_BOTTOM_LEFT, 5, h - 5);
 	lv_obj_align(route_value, route_label, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+	lv_obj_set_event_cb(route_value, edisp_xte_cb);
 
 	capf1_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(capf1_value, LV_LABEL_STYLE_MAIN, &style_large_text);
 	lv_label_set_text(capf1_value, "---" DEGSTR);
 	lv_obj_align(capf1_value, capp_value, LV_ALIGN_OUT_BOTTOM_LEFT, 0, h + 10);
+	lv_obj_set_event_cb(capf1_value, edisp_cogsog_cb);
 
 	lv_obj_t *fond_label = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(fond_label, LV_LABEL_STYLE_MAIN, &style_small_text);

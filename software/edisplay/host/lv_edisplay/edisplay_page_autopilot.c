@@ -23,8 +23,10 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <err.h>
+#include <pthread.h>
 #include <sys/time.h>
 #include "lvgl/lvgl.h"
 #include "edisplay_pages.h"
@@ -42,11 +44,28 @@ static lv_task_t *set_attitude_task;
 static lv_task_t *set_auto_task;
 
 static int received_heading;
+static int received_roll;
 
 static uint8_t auto_mode;
 #define AUTO_INVALID 0xff
 static double auto_heading;
-static double auto_slot;
+static uint8_t auto_slot;
+
+static uint8_t new_auto_mode;
+static double new_auto_heading;
+static uint8_t new_auto_slot;
+
+typedef struct _auto_factors_t {
+	int err;
+	int diff;
+	int diff2;
+} auto_factors_t;
+
+auto_factors_t factors_values[NPARAMS] = { 0 };
+
+pthread_cond_t factors_cond;
+static pthread_mutex_t factors_mtx;
+static pthread_mutexattr_t factors_mtx_attr;
 
 static void edisp_create_autopilot(void);
 
@@ -71,6 +90,7 @@ edisp_set_attitude_timeout(lv_task_t *task)
 void
 edisp_set_attitude(int heading, int roll)
 {
+#if 0
 	edisp_lvgl_lock();
 	char buf[6];
 	snprintf(buf, 6, "%3d" DEGSTR, heading);
@@ -82,6 +102,26 @@ edisp_set_attitude(int heading, int roll)
 
 	lv_task_reset(set_attitude_task);
 	edisp_lvgl_unlock();
+#endif
+	received_heading = heading;
+	received_roll = roll;
+	lv_event_send(cap_value, LV_EVENT_REFRESH, NULL);
+}
+
+static void
+edisp_attitude_cb(lv_obj_t *list, lv_event_t event)
+{
+	char buf[6];
+	switch(event) {
+	case LV_EVENT_REFRESH:
+		snprintf(buf, 6, "%3d" DEGSTR, received_heading);
+		lv_label_set_text(cap_value, buf);
+
+		snprintf(buf, 6, "%3d" DEGSTR, received_roll);
+		lv_label_set_text(roll_value, buf);
+		lv_task_reset(set_attitude_task);
+		break;
+	}
 }
 
 static void
@@ -97,18 +137,30 @@ void
 edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
 {
 	char buf[6];
-	edisp_lvgl_lock();
+	new_auto_mode = mode;
+	new_auto_heading = heading;
+	new_auto_slot = slot;
+	lv_event_send(autocap_value, LV_EVENT_REFRESH, NULL);
+}
+
+static void
+edisp_autocap_cb(lv_obj_t *list, lv_event_t event)
+{
+	char buf[6];
+	if (event != LV_EVENT_REFRESH)
+		return;
+
 	lv_task_reset(set_auto_task);
 	/* XXX handle errors */
-	if (mode == auto_mode && heading == auto_heading && slot == auto_slot) {
-		edisp_lvgl_unlock();
+	if (new_auto_mode == auto_mode && new_auto_heading == auto_heading &&
+	    new_auto_slot == auto_slot) {
 		return; /* nothing changed */
 	}
-	snprintf(buf, 6, "P%1d", slot);
+	snprintf(buf, 6, "P%1d", new_auto_slot);
 	lv_label_set_text(autoslot_value, buf);
-	auto_slot = slot;
-	auto_mode = mode;
-	switch(mode) {
+	auto_slot = new_auto_slot;
+	auto_mode = new_auto_mode;
+	switch(new_auto_mode) {
 	case AUTO_OFF:
 		auto_heading = -1;
 		lv_label_set_text(autocap_value, "OFF ");
@@ -117,12 +169,11 @@ edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
 		lv_label_set_text(autocap_value, "STBY");
 		break;
 	case AUTO_HEAD:
-		auto_heading = heading;
-		snprintf(buf, 6, "%3d" DEGSTR, (int)heading);
+		auto_heading = new_auto_heading;
+		snprintf(buf, 6, "%3d" DEGSTR, (int)new_auto_heading);
 		lv_label_set_text(autocap_value, buf);
 		break;
 	}
-	edisp_lvgl_unlock();
 }
 
 void
@@ -178,7 +229,7 @@ auto_slot_list(void)
 
 	slotnames[0] = '\0';
 
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < NPARAMS; i++) {
 		if (i > 0)
 			strlcat(slotnames, "\n", sizeof(slotnames));
 		snprintf(&slotnames[strlen(slotnames)], 
@@ -239,12 +290,24 @@ edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
 static void
 edisp_create_autopilot()
 {
+	if (pthread_cond_init(&factors_cond, NULL) != 0) {
+		errx(1, "pthread_cond_init failed");
+	}
+	pthread_mutexattr_init(&factors_mtx_attr);
+	pthread_mutexattr_settype(&factors_mtx_attr, PTHREAD_MUTEX_ERRORCHECK);
+	if (pthread_mutex_init(&factors_mtx, &factors_mtx_attr)) {
+		fprintf(stderr,
+		    "pthread_mutex_init(&factors_mtx) failed\n");
+		abort(); 
+	}
+
 	cap_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(cap_value, LV_LABEL_STYLE_MAIN, &style_large_text);
 	lv_label_set_text(cap_value, "---" DEGSTR);
 	int w = lv_obj_get_width(cap_value);
 	int h = lv_obj_get_height(cap_value);
 	lv_obj_align(cap_value, NULL, LV_ALIGN_OUT_TOP_LEFT, 5, h + 10);
+	lv_obj_set_event_cb(cap_value, edisp_attitude_cb);
 	received_heading = AUTO_INVALID;
 
 	lv_obj_t *autocap_label = lv_label_create(edisp_page, NULL);
@@ -257,6 +320,7 @@ edisp_create_autopilot()
 	h = lv_obj_get_height(autocap_value);
 	lv_obj_align(autocap_label, cap_value, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
 	lv_obj_align(autocap_value, autocap_label, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+	lv_obj_set_event_cb(autocap_value, edisp_autocap_cb);
 	auto_mode = AUTO_INVALID;
 
 	lv_obj_t *roll_label = lv_label_create(edisp_page, NULL);
@@ -308,4 +372,5 @@ edisp_autopilot_set_cogsog(const char *cog, const char *sog)
 {
 	lv_label_set_text(capf0_value, cog);
 	lv_label_set_text(vittf0_value, sog);
+	lv_event_send(autocap_value, LV_EVENT_REFRESH, NULL);
 }
