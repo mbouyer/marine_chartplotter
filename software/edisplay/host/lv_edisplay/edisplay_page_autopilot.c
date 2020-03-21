@@ -138,7 +138,7 @@ edisp_autopilot_startstop(bool active)
 		}
 		break;
 	case AUTO_STANDBY:
-		if (auto_heading > 0 && active) {
+		if (auto_heading >= 0 && active) {
 			if (!n2ks_auto_engage(auto_heading, AUTO_HEAD,
 			    auto_slot))
 				printf("n2ks_auto_engage failed\n");
@@ -159,9 +159,8 @@ auto_slot_action(lv_obj_t *list, lv_event_t event)
 	switch(event) {
 	case LV_EVENT_VALUE_CHANGED:
 		value = lv_ddlist_get_selected(list);
-		printf("new slot %d\n", value);
 		transient_close(list);
-		//switch_to_page(value);
+		n2ks_auto_engage(auto_heading, auto_mode, value);
 		break;
 	case LV_EVENT_KEY:
 		key = *((uint32_t *)lv_event_get_data());
@@ -209,7 +208,6 @@ edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
 			}
 			break;
 		case AUTO_HEAD:
-			new_head;
 			if (auto_heading < 0)
 				return;
 			switch(key) {
@@ -223,6 +221,8 @@ edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
 				if (new_head < 0)
 					new_head += 360;
 				break;
+			default:
+				return;
 			}
 			n2ks_auto_engage(new_head, AUTO_HEAD, auto_slot);
 		}
