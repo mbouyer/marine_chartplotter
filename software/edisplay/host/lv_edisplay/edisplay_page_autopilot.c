@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <err.h>
 #include <pthread.h>
+#include <errno.h>
 #include <sys/time.h>
 #include <sys/atomic.h>
 #include "lvgl/lvgl.h"
@@ -81,6 +82,62 @@ edisp_page_t epage_autopilot = {
 };
 
 #define edisp_page (epage_autopilot.epage_page)
+
+static void
+edisp_factors_lock(void)
+{
+	if (pthread_mutex_lock(&factors_mtx)) {
+		fprintf(stderr, "pthread_mutex_lock(&factors_mtx) failed\n");
+		abort();
+	}
+}
+
+static void
+edisp_factors_unlock(void)
+{
+	if (pthread_mutex_unlock(&factors_mtx)) {
+		fprintf(stderr,       
+		    "pthread_mutex_unlock(&factors_mtx) failed\n");  
+		abort();
+	}
+}
+
+static int
+edisp_auto_get_factor(int slot)
+{
+	int ret;
+	struct timeval now;
+	struct timespec ts;
+	for (int i = 0; i < 5; i++) {
+		(void)gettimeofday(&now, NULL);
+		TIMEVAL_TO_TIMESPEC(&now, &ts);
+		ts.tv_sec++;
+		edisp_factors_lock();
+		factors_values[slot].diff = -1;
+		if (!n2ks_auto_factors_request(slot)) {
+			edisp_factors_unlock();
+			return EIO;
+		}
+		ret = pthread_cond_timedwait(&factors_cond, &factors_mtx, &ts);
+		edisp_factors_unlock();
+		if (ret == 0 && factors_values[slot].diff >= 0)
+			return 0;
+		ret = ETIMEDOUT;
+	}
+	return ret;
+}
+
+void
+edisp_set_auto_factors(uint8_t slot, int err, int dif, int dif2)
+{
+	edisp_factors_lock();
+	factors_values[slot].err = err;
+	factors_values[slot].diff = dif;
+	factors_values[slot].diff2 = dif2;
+	pthread_cond_signal(&factors_cond);
+	edisp_factors_unlock();
+}
+
 
 static void
 edisp_set_attitude_timeout(lv_task_t *task)
@@ -241,16 +298,21 @@ auto_slot_action(lv_obj_t *list, lv_event_t event)
 static void
 auto_slot_list(void)
 {
-	char slotnames[100];
+	char slotnames[500];
 
 	slotnames[0] = '\0';
 
 	for (int i = 0; i < NPARAMS; i++) {
 		if (i > 0)
 			strlcat(slotnames, "\n", sizeof(slotnames));
+		edisp_auto_get_factor(i);
 		snprintf(&slotnames[strlen(slotnames)], 
 		    sizeof(slotnames) - strlen(slotnames),
-		    "P%d", i);
+		    "P%d %04d %04d %04d", i,
+		    factors_values[i].err,
+		    factors_values[i].diff,
+		    factors_values[i].diff2
+		    );
 	}
 	transient_list(slotnames, auto_slot, auto_slot_action);
 }

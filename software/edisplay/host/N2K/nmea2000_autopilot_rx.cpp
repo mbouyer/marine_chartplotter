@@ -57,6 +57,7 @@ bool private_command_factors_rx::handle(const nmea2000_frame &f)
 	int err = f.frame2int16(1);
 	int dif = f.frame2int16(3);
 	int dif2 = f.frame2int16(5);
+	edisp_set_auto_factors(slot, err, dif, dif2);
 	return true;
 }
 

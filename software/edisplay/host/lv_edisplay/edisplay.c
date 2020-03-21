@@ -366,7 +366,7 @@ transient_list(const char *names, int select,
 	lv_ddlist_set_stay_open(list, true);
 	lv_coord_t h = lv_obj_get_height(list);
 	transient_open(list);
-	lv_obj_align(list, lv_top_trs, LV_ALIGN_CENTER, 0, -h/2);
+	lv_obj_align(list, lv_top_trs, LV_ALIGN_CENTER, 0, -h/2 + 5);
 	return list;
 }
 
