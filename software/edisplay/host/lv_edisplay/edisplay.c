@@ -600,6 +600,8 @@ edisplay_app_run(void)
 
 	while(1) {
 		lv_task_handler();
+		edisp_update_navdata();
+		edisp_update_autopilot();
 		if (gettimeofday(&tv, NULL) < 0) {
 			err(1, "gettimeofday");
 		}

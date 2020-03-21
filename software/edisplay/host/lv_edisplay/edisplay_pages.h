@@ -51,6 +51,9 @@ void edisp_autopilot_startstop(bool);
 
 extern edisp_page_t epage_navdata;
 
+void edisp_update_navdata(void);
+void edisp_update_autopilot(void);
+
 #define BUTTON_MOB 0
 #define BUTTON_LIGHT 1
 #define BUTTON_PAGE 2

@@ -36,11 +36,14 @@ static lv_obj_t *route_value;
 static lv_obj_t *capf1_value;
 static lv_obj_t *vittf1_value;
 
-int received_cog;
-int received_sog;
-int received_xte;
-int received_capp;
-int received_distp;
+static volatile int received_cog;
+static volatile int received_sog;
+static volatile uint cogsog_gen;
+static volatile int received_xte;
+static volatile uint xte_gen;
+static volatile int received_capp;
+static volatile int received_distp;
+static volatile uint navdata_gen;
 
 static lv_task_t *set_cogsog_task;
 static lv_task_t *set_xte_task;
@@ -69,21 +72,35 @@ edisp_set_cogsog_timeout(lv_task_t *task)
 void
 edisp_set_cogsog(int cog, int sog)
 {
+	cogsog_gen++;
+	membar_producer();
 	received_cog = cog;
 	received_sog = sog;
-	lv_event_send(capf1_value, LV_EVENT_REFRESH, NULL);
+	membar_producer();
+	cogsog_gen++;
 }
 
 static void
-edisp_cogsog_cb(lv_obj_t *list, lv_event_t event)
+edisp_cogsog_update(void)
 {
-	if (event != LV_EVENT_REFRESH)
+	static uint gen = 0;
+	int cog, sog;
+
+	if (gen == cogsog_gen)
 		return;
 
-	int kn = received_sog * 360 / 1852; /* kn * 10 */
+	while (cogsog_gen != gen || (gen % 1) != 0) {
+		gen = cogsog_gen;
+		membar_consumer();
+		sog = received_sog;
+		cog = received_cog;
+		membar_consumer();
+	}
+
+	int kn = sog * 360 / 1852; /* kn * 10 */
 	char cogs[6];
 	char sogs[6];
-	snprintf(cogs, 6, "%3d" DEGSTR, received_cog);
+	snprintf(cogs, 6, "%3d" DEGSTR, cog);
 
 	if (kn > 100) {
 		snprintf(sogs, 6, "%3dn", kn / 10);
@@ -106,16 +123,30 @@ edisp_set_xte_timeout(lv_task_t *task)
 void
 edisp_set_xte(int xte)
 {
+	xte_gen++;
+	membar_producer();
 	received_xte = xte;
-	lv_event_send(route_value, LV_EVENT_REFRESH, NULL);
+	membar_producer();
+	xte_gen++;
 }
 
 static void
-edisp_xte_cb(lv_obj_t *list, lv_event_t event)
+edisp_xte_update(void)
 {
+	static uint gen = 0;
 	char buf[11];
 	char l, r;
-	int xte = received_xte;
+	int xte;
+
+	if (gen == xte_gen)
+		return;
+
+	while (xte_gen != gen || (gen % 1) != 0) {
+		xte = received_xte;
+		membar_consumer();
+		gen = xte_gen;
+		membar_consumer();
+	}
 
 	l = r = ' ';
 
@@ -144,27 +175,45 @@ edisp_set_navdata_timeout(lv_task_t *task)
 	lv_label_set_text(capp_value, "---" DEGSTR);
 	lv_label_set_text(distp_value, "----mn");
 }
+
 void
 edisp_set_navdata(int capp, int distp)
 {
+	navdata_gen++;
+	membar_producer();
 	received_capp = capp;
 	received_distp = distp;
-	lv_event_send(capp_value, LV_EVENT_REFRESH, NULL);
+	membar_producer();
+	navdata_gen++;
 }
 
 static void
-edisp_navdata_cb(lv_obj_t *list, lv_event_t event)
+edisp_navdata_update(void)
 {
+	static uint gen = 0;
 	char buf[10];
-	snprintf(buf, 10, "%3d" DEGSTR, received_capp);
+	int distp, capp;
+
+	if (gen == navdata_gen)
+		return;
+
+	while (navdata_gen != gen || (gen % 1) != 0) {
+		gen = navdata_gen;
+		membar_consumer();
+		capp = received_capp;
+		distp = received_distp;
+		membar_consumer();
+	}
+
+	snprintf(buf, 10, "%3d" DEGSTR, capp);
 	lv_label_set_text(capp_value, buf);
-	if (received_distp > 1852000) { /* 10mn */
-		snprintf(buf, 10, "%4dmn", received_distp / 185200);
-	} else if (received_distp > 18520UL) { /* 0.1mn */
-		snprintf(buf, 10, "%1d.%02dmn", (received_distp / 185200),
-		    (received_distp % 185200) / 1852);
+	if (distp > 1852000) { /* 10mn */
+		snprintf(buf, 10, "%4dmn", distp / 185200);
+	} else if (distp > 18520UL) { /* 0.1mn */
+		snprintf(buf, 10, "%1d.%02dmn", (distp / 185200),
+		    (distp % 185200) / 1852);
 	} else {
-		snprintf(buf, 10, " %3dm ", received_distp / 100);
+		snprintf(buf, 10, " %3dm ", distp / 100);
 	}
 	lv_label_set_text(distp_value, buf);
 	lv_task_reset(set_navdata_task);
@@ -179,7 +228,6 @@ edisp_create_navdata()
 	int w = lv_obj_get_width(capp_value);
 	int h = lv_obj_get_height(capp_value);
 	lv_obj_align(capp_value, NULL, LV_ALIGN_OUT_TOP_LEFT, 5, h + 10);
-	lv_obj_set_event_cb(capp_value, edisp_navdata_cb);
 
 	distp_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(distp_value, LV_LABEL_STYLE_MAIN, &style_large_text);
@@ -198,13 +246,11 @@ edisp_create_navdata()
 	h = lv_obj_get_height(route_value);
 	lv_obj_align(route_label, capp_value, LV_ALIGN_OUT_BOTTOM_LEFT, 5, h - 5);
 	lv_obj_align(route_value, route_label, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
-	lv_obj_set_event_cb(route_value, edisp_xte_cb);
 
 	capf1_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(capf1_value, LV_LABEL_STYLE_MAIN, &style_large_text);
 	lv_label_set_text(capf1_value, "---" DEGSTR);
 	lv_obj_align(capf1_value, capp_value, LV_ALIGN_OUT_BOTTOM_LEFT, 0, h + 10);
-	lv_obj_set_event_cb(capf1_value, edisp_cogsog_cb);
 
 	lv_obj_t *fond_label = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(fond_label, LV_LABEL_STYLE_MAIN, &style_small_text);
@@ -223,4 +269,12 @@ edisp_create_navdata()
 	    edisp_set_navdata_timeout, 5000, LV_TASK_PRIO_MID, NULL);
 	set_cogsog_task = lv_task_create(
 	    edisp_set_cogsog_timeout, 5000, LV_TASK_PRIO_MID, NULL);
+}
+
+void
+edisp_update_navdata(void)
+{
+	edisp_cogsog_update();
+	edisp_xte_update();
+	edisp_navdata_update();
 }
