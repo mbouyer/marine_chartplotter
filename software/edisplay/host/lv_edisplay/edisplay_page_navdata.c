@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <err.h>
 #include <sys/time.h>
+#include <sys/atomic.h>
 #include "lvgl/lvgl.h"
 #include "edisplay_pages.h"
 #include "hal.h"
@@ -55,6 +56,7 @@ edisp_page_t epage_navdata = {
 	activate_page,
 	"cog/sog",
 	true,
+	false,
 	NULL
 };
 

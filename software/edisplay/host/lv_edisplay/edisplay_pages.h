@@ -29,6 +29,7 @@ typedef struct edisp_page {
 	void (*epage_activate)(struct edisp_page *);
 	const char *epage_menu;
 	bool epage_in_page;
+	bool epage_is_transient;
 	lv_obj_t *epage_page;
 } edisp_page_t;
 
@@ -46,6 +47,7 @@ lv_obj_t *transient_list(const char *, int, void (*)(lv_obj_t *, lv_event_t));
 void print_ev(lv_event_t event);
 
 extern edisp_page_t epage_autopilot;
+extern edisp_page_t epage_autoparams;
 void edisp_autopilot_set_cogsog(const char *, const char *);
 void edisp_autopilot_startstop(bool);
 

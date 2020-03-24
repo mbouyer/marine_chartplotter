@@ -50,12 +50,14 @@ edisp_page_t epage_retro = {
 	light_slide,
 	"retro-eclairage",
 	false,
+	true,
 	NULL
 };
 
 static edisp_page_t *epages[] = {             
 	&epage_autopilot,
 	&epage_navdata,
+	&epage_autoparams,
 	&epage_retro,
 }; 
 
@@ -131,7 +133,7 @@ deactivate_page(edisp_page_t *epage)
 static void
 switch_to_page(int new)
 {
-	if (epages[new] != &epage_retro) {
+	if (!epages[new]->epage_is_transient) {
 		deactivate_page(epages[current_page]);
 		current_page = new;
 	}
@@ -421,7 +423,6 @@ page_action(lv_obj_t *list, lv_event_t event)
 	switch(event) {
 	case LV_EVENT_VALUE_CHANGED:
 		value = lv_ddlist_get_selected(list);
-		printf("new page %d\n", value);
 		transient_close(list);
 		switch_to_page(value);
 		break;

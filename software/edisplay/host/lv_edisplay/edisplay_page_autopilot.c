@@ -78,10 +78,22 @@ edisp_page_t epage_autopilot = {
 	activate_page,
 	"cap/auto",
 	true,
+	false,
 	NULL
 };
 
 #define edisp_page (epage_autopilot.epage_page)
+
+static void edisp_activate_autoparams(edisp_page_t *epage);
+
+edisp_page_t epage_autoparams = {
+	NULL, 
+	edisp_activate_autoparams,
+	"pilot params",
+	false,
+	true,
+	NULL
+};
 
 static void
 edisp_factors_lock(void)
@@ -108,7 +120,7 @@ edisp_auto_get_factor(int slot)
 	int ret;
 	struct timeval now;
 	struct timespec ts;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < NPARAMS; i++) {
 		(void)gettimeofday(&now, NULL);
 		TIMEVAL_TO_TIMESPEC(&now, &ts);
 		ts.tv_sec++;
@@ -276,7 +288,7 @@ edisp_autopilot_startstop(bool active)
 }
 
 static void
-auto_slot_action(lv_obj_t *list, lv_event_t event)
+auto_slot_change(lv_obj_t *list, lv_event_t event)
 {
 	int key;
 	int value;
@@ -296,7 +308,7 @@ auto_slot_action(lv_obj_t *list, lv_event_t event)
 }
 
 static void
-auto_slot_list(void)
+auto_slot_list(void (*action)(lv_obj_t *, lv_event_t))
 {
 	char slotnames[500];
 
@@ -314,7 +326,7 @@ auto_slot_list(void)
 		    factors_values[i].diff2
 		    );
 	}
-	transient_list(slotnames, auto_slot, auto_slot_action);
+	transient_list(slotnames, auto_slot, action);
 }
 
 static void
@@ -357,7 +369,7 @@ edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
 		}
 		return;
 	case LV_EVENT_LONG_PRESSED:
-		auto_slot_list();
+		auto_slot_list(auto_slot_change);
 		return;
 	}
 	printf("autopilot event ");
@@ -456,4 +468,31 @@ edisp_update_autopilot(void)
 {
 	edisp_attitude_update();
 	edisp_autocap_update();
+}
+
+
+static void
+auto_slot_edit(lv_obj_t *list, lv_event_t event)
+{
+	int key;
+	int value;
+	switch(event) {
+	case LV_EVENT_VALUE_CHANGED:
+		value = lv_ddlist_get_selected(list);
+		transient_close(list);
+		printf("edit %d\n", value);
+		break;
+	case LV_EVENT_KEY:
+		key = *((uint32_t *)lv_event_get_data());
+		if (key == LV_KEY_ESC) {
+			transient_close(list);
+		}
+		break;
+	}
+}
+
+static void
+edisp_activate_autoparams(edisp_page_t *epage)
+{
+	auto_slot_list(auto_slot_edit);
 }
