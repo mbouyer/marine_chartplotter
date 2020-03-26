@@ -34,6 +34,7 @@
 #include "edisplay_pages.h"
 #include "edisplay_font.h"
 #include "hal.h"
+#include "lv_eslider.h"
 
 static void page_list(void);
 static void light_slide(edisp_page_t *);
@@ -377,11 +378,11 @@ light_action(lv_obj_t *slide, lv_event_t event)
 {
 	int key;
 	switch(event) {
-	case LV_EVENT_SHORT_CLICKED:
+	case LV_EVENT_APPLY:
 		transient_close(slide);
 		break;
 	case LV_EVENT_VALUE_CHANGED:
-		backlight_pwm = lv_slider_get_value(slide);
+		backlight_pwm = lv_eslider_get_value(slide);
 		set_backlight();
 		break;
 	case LV_EVENT_KEY:
@@ -402,9 +403,11 @@ light_action(lv_obj_t *slide, lv_event_t event)
 static void
 light_slide(edisp_page_t *epage)
 {
-	lv_obj_t *slide = lv_slider_create(lv_top_trs, NULL);
-	lv_slider_set_range(slide, 10, 100);
-	lv_slider_set_value(slide, backlight_pwm, LV_ANIM_OFF);
+	static const uint16_t light_steps[] = {10, 1};
+	lv_obj_t *slide = lv_eslider_create(lv_top_trs, NULL);
+	lv_eslider_set_range(slide, 10, 100);
+	lv_eslider_set_value(slide, backlight_pwm, LV_ANIM_OFF);
+	lv_eslider_set_steps(slide, light_steps, 2);
 	lv_obj_set_event_cb(slide, light_action);
 	transient_open(slide);
 	lv_obj_align(slide, lv_top_trs, LV_ALIGN_CENTER, 0, 0);

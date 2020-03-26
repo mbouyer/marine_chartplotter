@@ -55,6 +55,7 @@ if (MONITOR)
     lv_drivers/indev/mouse.c
     lv_drivers/indev/mousewheel.c
     lv_edisplay/hal_sdl.c
+    lv_edisplay/lv_eslider.c
   )
 else(MONITOR)
   find_path(LIBUSB_INCLUDE_DIR
@@ -106,6 +107,7 @@ SET(LVHDRS
     lv_edisplay/edisplay_data.h
     lv_edisplay/edisplay_font.h
     lv_edisplay/edisplay_pages.h
+    lv_edisplay/lv_eslider.h
     lvgl/lvgl.h
     lvgl/src/lv_conf_checker.h
     lvgl/src/lv_core/lv_disp.h
