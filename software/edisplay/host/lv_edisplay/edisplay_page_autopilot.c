@@ -357,6 +357,11 @@ edisp_autopilot_action(lv_obj_t * obj, lv_event_t event)
 			case LV_KEY_LEFT:
 				n2ks_auto_acuator(-1);
 				break;
+			case LV_KEY_ESC:
+				if (!n2ks_auto_engage(auto_heading, AUTO_OFF,
+				    auto_slot))
+					printf("n2ks_auto_engage failed\n");
+				break;
 			}
 			break;
 		case AUTO_HEAD:
