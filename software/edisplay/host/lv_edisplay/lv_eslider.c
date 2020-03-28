@@ -317,7 +317,7 @@ lv_eslider_design(lv_obj_t * eslider, const lv_area_t * mask,
 	/* Draw the borders later if the eslider is focused.
 	 * At value = 100% the indicator can cover to whole background and the focused style won't
 	 * be visible*/
-	if(lv_obj_is_focused(eslider)) {
+	if(!lv_obj_is_focused(eslider)) {
 	    lv_style_copy(&style_tmp, style_bg);
 	    style_tmp.body.border.width = 0;
 	    lv_draw_rect(&area_bg, mask, &style_tmp, opa_scale);

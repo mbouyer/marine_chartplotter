@@ -37,8 +37,12 @@ extern lv_style_t style_large_text;
 extern lv_style_t style_medium_text;
 extern lv_style_t style_small_text;
 
+extern lv_obj_t *lv_top_trs;
+
 void activate_page(edisp_page_t *);
 void deactivate_page(edisp_page_t *);
+void enc_group_focus(lv_obj_t *, bool);
+void enc_group_defocus(lv_obj_t *);
 void transient_open(lv_obj_t *);
 void transient_close(lv_obj_t *);
 lv_obj_t *transient_list(const char *, int, void (*)(lv_obj_t *, lv_event_t));

@@ -34,6 +34,7 @@
 #include "edisplay_pages.h"
 #include "edisplay_data.h"
 #include "hal.h"
+#include "lv_eslider.h"
 
 static lv_obj_t *cap_value;
 static lv_obj_t *autocap_value;
@@ -64,6 +65,9 @@ typedef struct _auto_factors_t {
 	int diff;
 	int diff2;
 } auto_factors_t;
+#define FACTOR_ERR   0
+#define FACTOR_DIFF  1
+#define FACTOR_DIFF2 2
 
 auto_factors_t factors_values[NPARAMS] = { 0 };
 
@@ -121,6 +125,12 @@ edisp_auto_get_factor(int slot)
 	struct timeval now;
 	struct timespec ts;
 	for (int i = 0; i < NPARAMS; i++) {
+#if 0
+		factors_values[i].err = i;
+		factors_values[i].diff = i;
+		factors_values[i].diff2 = i;
+		ret = 0;
+#else
 		(void)gettimeofday(&now, NULL);
 		TIMEVAL_TO_TIMESPEC(&now, &ts);
 		ts.tv_sec++;
@@ -135,6 +145,7 @@ edisp_auto_get_factor(int slot)
 		if (ret == 0 && factors_values[slot].diff >= 0)
 			return 0;
 		ret = ETIMEDOUT;
+#endif
 	}
 	return ret;
 }
@@ -470,6 +481,99 @@ edisp_update_autopilot(void)
 	edisp_autocap_update();
 }
 
+typedef struct edit_factors_data {
+	int slot;
+	lv_obj_t *slide[3];
+} edit_factors_data_t;
+
+static void
+auto_factors_action(lv_obj_t *slide, lv_event_t event)
+{
+	int key;
+	lv_obj_t *frame = lv_obj_get_parent(slide);
+	edit_factors_data_t *data = lv_obj_get_ext_attr(frame);
+	int index;
+
+	/* find our index */
+	for (index = 0; index < 3; index++) {
+		if (data->slide[index] == slide)
+			break;
+	}
+	switch(event) {
+	case LV_EVENT_APPLY:
+		printf("apply slot %d\n", data->slot);
+		n2ks_auto_factors(data->slot,
+		    lv_eslider_get_value(data->slide[FACTOR_ERR]),
+		    lv_eslider_get_value(data->slide[FACTOR_DIFF]),
+		    lv_eslider_get_value(data->slide[FACTOR_DIFF2]));
+		edisp_auto_get_factor(data->slot);
+		lv_eslider_set_value(data->slide[FACTOR_ERR],
+		    factors_values[data->slot].err, LV_ANIM_OFF);
+		lv_eslider_set_value(data->slide[FACTOR_DIFF],
+		    factors_values[data->slot].diff, LV_ANIM_OFF);
+		lv_eslider_set_value(data->slide[FACTOR_DIFF2],
+		    factors_values[data->slot].diff, LV_ANIM_OFF);
+		enc_group_defocus(slide);
+		index++;
+		if (index == 3)
+			index = 0;
+		enc_group_focus(data->slide[index], true);
+		break;
+	case LV_EVENT_VALUE_CHANGED:
+		/* XXX send value */
+		break;
+	case LV_EVENT_KEY:
+	    {
+		int key = *((uint32_t *)lv_event_get_data());
+		if (key == LV_KEY_ESC) {
+			enc_group_defocus(slide);
+			lv_obj_del_async(frame);
+		}
+		break;
+	    }
+	}
+}
+
+static void
+auto_edit_factors(int slot)
+{
+	static lv_style_t style_page;
+	lv_obj_t *frame = lv_obj_create(lv_top_trs, NULL);
+	edit_factors_data_t *data = lv_obj_allocate_ext_attr(frame, sizeof(edit_factors_data_t));
+	static const uint16_t factors_steps[] = {100, 10, 1};
+
+	edisp_auto_get_factor(slot);
+	data->slot = slot;
+
+	lv_style_copy(&style_page, lv_obj_get_style(lv_scr_act()));
+	lv_obj_set_style(frame, &style_page);
+	lv_obj_set_size(frame, lv_obj_get_width(lv_top_trs),
+	    lv_obj_get_height(lv_top_trs) - 20);
+
+	int w = lv_obj_get_width(frame) - 10;
+
+	for (int i = 0; i < 3; i++) {
+		lv_obj_t *slide = data->slide[i] =
+		    lv_eslider_create(frame, NULL);
+		lv_obj_set_width(slide, w);
+		lv_eslider_set_range(slide, 0, 9999);
+		lv_eslider_set_steps(slide, factors_steps, 3);
+		lv_obj_set_event_cb(slide, auto_factors_action);
+		lv_coord_t h = lv_obj_get_height(slide);
+		lv_obj_align(slide, frame, LV_ALIGN_CENTER, 0,
+		    (h + 5) * (i - 1));
+	}
+
+	lv_obj_align(frame, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
+	lv_obj_move_foreground(frame);
+	enc_group_focus(data->slide[FACTOR_ERR], true);
+	lv_eslider_set_value(data->slide[FACTOR_ERR],
+	    factors_values[slot].err, LV_ANIM_OFF);
+	lv_eslider_set_value(data->slide[FACTOR_DIFF],
+	    factors_values[slot].diff, LV_ANIM_OFF);
+	lv_eslider_set_value(data->slide[FACTOR_DIFF2],
+	    factors_values[slot].diff, LV_ANIM_OFF);
+}
 
 static void
 auto_slot_edit(lv_obj_t *list, lv_event_t event)
@@ -480,6 +584,7 @@ auto_slot_edit(lv_obj_t *list, lv_event_t event)
 	case LV_EVENT_VALUE_CHANGED:
 		value = lv_ddlist_get_selected(list);
 		transient_close(list);
+		auto_edit_factors(value);
 		printf("edit %d\n", value);
 		break;
 	case LV_EVENT_KEY:

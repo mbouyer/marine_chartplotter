@@ -39,8 +39,8 @@
 static void page_list(void);
 static void light_slide(edisp_page_t *);
 
-static void enc_group_focus(lv_obj_t *, bool);
-static void enc_group_defocus(lv_obj_t *);
+void enc_group_focus(lv_obj_t *, bool);
+void enc_group_defocus(lv_obj_t *);
 
 lv_style_t style_large_text;
 lv_style_t style_medium_text;
@@ -65,7 +65,7 @@ static edisp_page_t *epages[] = {
 static int current_page = 0;
 
 static lv_obj_t *lv_top;
-static lv_obj_t *lv_top_trs; /* transient top displays (menu, err msg, ...) */
+       lv_obj_t *lv_top_trs; /* transient top displays (menu, err msg, ...) */
 static lv_group_t *encg;
 
 static struct button {
@@ -320,7 +320,7 @@ btn_cancel_click_action(lv_obj_t * btn, lv_event_t event)
 	printf("\n");
 }
 
-static void
+void
 enc_group_focus(lv_obj_t *obj, bool force)
 {
 	lv_group_set_editing(encg, false);
@@ -332,7 +332,7 @@ enc_group_focus(lv_obj_t *obj, bool force)
 	lv_group_focus_freeze(encg, true);
 }
 
-static void
+void
 enc_group_defocus(lv_obj_t *obj)
 {
 	lv_group_set_editing(encg, false);
