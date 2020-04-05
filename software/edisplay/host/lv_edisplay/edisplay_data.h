@@ -37,6 +37,7 @@ void edisp_set_light(int);
 #define LIGHT_MODE_OFF 0
 #define LIGHT_MODE_ON 1
 #define LIGHT_MODE_REV 2
+void edisp_control_page(int);
 
 void edisp_set_auto_status(uint8_t, double, uint8_t, uint8_t);
 void edisp_set_auto_factors(uint8_t, int, int, int);

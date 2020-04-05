@@ -79,6 +79,16 @@ bool private_remote_control_rx::handle(const nmea2000_frame &f)
 			break;
 		}
 		break;
+	case CONTROL_REMOTE_DISPLAY:
+		switch(subtype) {
+		case CONTROL_REMOTE_DISPLAY_PAGE:
+		    {
+			char move = f.frame2int8(2);
+			edisp_control_page(move);
+			break;
+		    }
+		}
+		break;
 	}
 	return true;
 }

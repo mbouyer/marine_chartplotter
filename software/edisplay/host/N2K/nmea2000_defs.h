@@ -91,6 +91,10 @@ class nmea2000_desc {
 #define 	CONTROL_BEEP_LONG       0x01  
 #define 	CONTROL_BEEP_SIZE 2
 #define 	CONTROL_REMOTE_RADIO    0x05  
+#define		CONTROL_REMOTE_RADIO_SIZE 5
+#define		CONTROL_REMOTE_DISPLAY  0x06
+#define		CONTROL_REMOTE_DISPLAY_PAGE     0x00
+#define		CONTROL_REMOTE_DISPLAY_PAGE_SIZE 3
 
 inline double rad2deg(int rad)
 {

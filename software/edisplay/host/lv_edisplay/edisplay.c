@@ -282,22 +282,37 @@ btn_light_click_action(lv_obj_t * btn, lv_event_t event)
 	printf("\n");
 }
 
-static void
-btn_page_click_action(lv_obj_t * btn, lv_event_t event)
+void
+edisp_control_page(int move)
 {
 	int new_page;
-	switch(event) {
-	   case LV_EVENT_LONG_PRESSED:
-		page_list();
-		return;
-	   case LV_EVENT_SHORT_CLICKED:
-		new_page = current_page;
+	new_page = current_page;
+	if (move > 0) {
 		do {
 			new_page++;
 			if (new_page >= sizeof(epages) / sizeof(epages[0]))
 				new_page = 0;
 		} while (epages[new_page]->epage_in_page == false);
-		switch_to_page(new_page);
+	} else if (move < 0) {
+		do {
+			new_page--;
+			if (new_page < 0)
+				new_page =
+				    sizeof(epages) / sizeof(epages[0]) - 1;
+		} while (epages[new_page]->epage_in_page == false);
+	}
+	switch_to_page(new_page);
+}
+
+static void
+btn_page_click_action(lv_obj_t * btn, lv_event_t event)
+{
+	switch(event) {
+	   case LV_EVENT_LONG_PRESSED:
+		page_list();
+		return;
+	   case LV_EVENT_SHORT_CLICKED:
+		edisp_control_page(1);
 		return;
 	}
 		
