@@ -58,7 +58,22 @@ static uint8_t auto_slot;
 static volatile uint8_t new_auto_mode;
 static volatile double new_auto_heading;
 static volatile uint8_t new_auto_slot;
+static volatile uint8_t new_auto_error;
 static volatile uint auto_gen;
+
+static const char *error_msg[] = {
+	"capteur muet",
+	"feedback muet",
+	"surcharge verin",
+	"power error",
+	"unknown",
+	"unknown",
+	"unknown",
+	"unknown"
+};
+
+lv_obj_t *error_label;
+int error_idx = -1;
 
 typedef struct _auto_factors_t {
 	int err;
@@ -223,8 +238,69 @@ edisp_set_auto_status(uint8_t mode, double heading, uint8_t error, uint8_t slot)
 	new_auto_mode = mode;
 	new_auto_heading = heading;
 	new_auto_slot = slot;
+	new_auto_error = error;
 	membar_producer();
 	auto_gen++;
+}
+
+static void
+edisp_error_action(lv_obj_t *frame, lv_event_t event)
+{
+	switch(event) {
+	case LV_EVENT_KEY:
+	    {
+		int key = *((uint32_t *)lv_event_get_data());
+		if (key == LV_KEY_ESC) {
+			n2ks_auto_errack(1U << error_idx);
+			transient_close(frame);
+			error_label = NULL;
+			error_idx = -1;
+		}
+		break;
+	    }
+	}
+}
+
+static void
+edisp_error_update(uint8_t error)
+{
+	char buf[128];
+	lv_obj_t *frame;
+	static lv_style_t style_page;
+
+	if (error == 0) {
+		frame = lv_obj_get_parent(error_label);
+		transient_close(frame);
+		error_label = NULL;
+		error_idx = -1;
+		return;
+	}
+
+	if (error_label)
+		return;
+
+	for (error_idx = 0; error_idx < 8; error_idx++) {
+		if (error & 0x1)
+			break;
+		error = (error >> 1);
+	}
+
+
+	frame = lv_obj_create(lv_top_trs, NULL);
+	lv_style_copy(&style_page, lv_obj_get_style(lv_scr_act()));
+	lv_obj_set_style(frame, &style_page);
+
+	error_label = lv_label_create(frame, NULL);
+	lv_label_set_style(error_label, LV_LABEL_STYLE_MAIN, &style_medium_text);
+	snprintf(buf, sizeof(buf), "erreur pilote\n%s", error_msg[error_idx]);
+	lv_label_set_text(error_label, buf);
+	lv_obj_set_event_cb(frame, edisp_error_action);
+	lv_coord_t w = lv_obj_get_width(error_label);
+	lv_coord_t h = lv_obj_get_height(error_label);
+	lv_obj_set_size(frame, w + 5, h + 5);
+	lv_obj_align(frame, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
+	lv_obj_align(error_label, frame, LV_ALIGN_CENTER, 0, 0);
+	transient_open(frame);
 }
 
 static void
@@ -234,6 +310,7 @@ edisp_autocap_update(void)
 	char buf[6];
 	int mode, slot;
 	double heading;
+	uint8_t error;
 
 	if (gen == auto_gen)
 		return;
@@ -244,7 +321,12 @@ edisp_autocap_update(void)
 		mode = new_auto_mode;
 		heading = new_auto_heading;
 		slot = new_auto_slot;
+		error = new_auto_error;
 		membar_consumer();    
+	}
+
+	if (error || error_label != NULL) {
+		edisp_error_update(error);
 	}
 
 	lv_task_reset(set_auto_task);
@@ -525,8 +607,7 @@ auto_factors_action(lv_obj_t *slide, lv_event_t event)
 		enc_group_focus(data->slide[index], true);
 		break;
 	case LV_EVENT_VALUE_CHANGED:
-		/* XXX send value */
-		break;
+		/* XXX send value ? */
 	case LV_EVENT_KEY:
 	    {
 		int key = *((uint32_t *)lv_event_get_data());
