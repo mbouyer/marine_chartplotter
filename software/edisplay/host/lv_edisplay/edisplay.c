@@ -141,6 +141,17 @@ switch_to_page(int new)
 	epages[new]->epage_activate(epages[new]);
 }
 
+void
+switch_to_page_o(lv_obj_t *page)
+{
+	for (int i = 0; i < sizeof(epages) / sizeof(epages[0]); i++) {
+		if (page == epages[i]->epage_page) {
+			switch_to_page(i);
+			return;
+		}
+	}
+}
+
 static void
 disp_refresh(void *p)
 {

@@ -46,7 +46,7 @@ void enc_group_defocus(lv_obj_t *);
 void transient_open(lv_obj_t *);
 void transient_close(lv_obj_t *);
 lv_obj_t *transient_list(const char *, int, void (*)(lv_obj_t *, lv_event_t));
-
+void switch_to_page_o(lv_obj_t *);
 
 void print_ev(lv_event_t event);
 

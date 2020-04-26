@@ -44,6 +44,7 @@ static volatile int received_xte;
 static volatile uint xte_gen;
 static volatile int received_capp;
 static volatile int received_distp;
+static volatile uint32_t received_wp;
 static volatile uint navdata_gen;
 
 static lv_task_t *set_cogsog_task;
@@ -171,20 +172,25 @@ edisp_xte_update(void)
 	lv_task_reset(set_xte_task);
 }
 
+static uint32_t old_wp;
+static bool wp_valid = 0;
+
 static void
 edisp_set_navdata_timeout(lv_task_t *task)
 {
 	lv_label_set_text(capp_value, "---" DEGSTR);
 	lv_label_set_text(distp_value, "----mn");
+	wp_valid = 0;
 }
 
 void
-edisp_set_navdata(int capp, int distp)
+edisp_set_navdata(int capp, int distp, uint32_t wp)
 {
 	navdata_gen++;
 	membar_producer();
 	received_capp = capp;
 	received_distp = distp;
+	received_wp = wp;
 	membar_producer();
 	navdata_gen++;
 }
@@ -195,6 +201,7 @@ edisp_navdata_update(void)
 	static uint gen = 0;
 	char buf[10];
 	int distp, capp;
+	uint32_t wp;
 
 	if (gen == navdata_gen)
 		return;
@@ -204,7 +211,14 @@ edisp_navdata_update(void)
 		membar_consumer();
 		capp = received_capp;
 		distp = received_distp;
+		wp = received_wp;
 		membar_consumer();
+	}
+
+	if (wp_valid == 0 || old_wp != wp) {
+		old_wp = wp;
+		wp_valid = 1;
+		switch_to_page_o(edisp_page);
 	}
 
 	snprintf(buf, 10, "%3d" DEGSTR, capp);
