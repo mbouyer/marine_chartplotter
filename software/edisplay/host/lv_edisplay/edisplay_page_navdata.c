@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <err.h>
 #include <sys/time.h>
+#include <sys/atomic.h>
 #include "lvgl/lvgl.h"
 #include "edisplay_pages.h"
 #include "hal.h"
@@ -35,6 +36,16 @@ static lv_obj_t *distp_value;
 static lv_obj_t *route_value;
 static lv_obj_t *capf1_value;
 static lv_obj_t *vittf1_value;
+
+static volatile int received_cog;
+static volatile int received_sog;
+static volatile uint cogsog_gen;
+static volatile int received_xte;
+static volatile uint xte_gen;
+static volatile int received_capp;
+static volatile int received_distp;
+static volatile uint32_t received_wp;
+static volatile uint navdata_gen;
 
 static lv_task_t *set_cogsog_task;
 static lv_task_t *set_xte_task;
@@ -46,6 +57,7 @@ edisp_page_t epage_navdata = {
 	activate_page,
 	"cog/sog",
 	true,
+	false,
 	NULL
 };
 
@@ -63,7 +75,31 @@ edisp_set_cogsog_timeout(lv_task_t *task)
 void
 edisp_set_cogsog(int cog, int sog)
 {
-	edisp_lvgl_lock();
+	cogsog_gen++;
+	membar_producer();
+	received_cog = cog;
+	received_sog = sog;
+	membar_producer();
+	cogsog_gen++;
+}
+
+static void
+edisp_cogsog_update(void)
+{
+	static uint gen = 0;
+	int cog, sog;
+
+	if (gen == cogsog_gen)
+		return;
+
+	while (cogsog_gen != gen || (gen % 1) != 0) {
+		gen = cogsog_gen;
+		membar_consumer();
+		sog = received_sog;
+		cog = received_cog;
+		membar_consumer();
+	}
+
 	int kn = sog * 360 / 1852; /* kn * 10 */
 	char cogs[6];
 	char sogs[6];
@@ -79,7 +115,6 @@ edisp_set_cogsog(int cog, int sog)
 	lv_label_set_text(vittf1_value, sogs);
 
 	lv_task_reset(set_cogsog_task);
-	edisp_lvgl_unlock();
 }
 
 static void
@@ -87,12 +122,35 @@ edisp_set_xte_timeout(lv_task_t *task)
 {
 	lv_label_set_text(route_value, "  ----mn  ");
 }
+
 void
 edisp_set_xte(int xte)
 {
-	edisp_lvgl_lock();
+	xte_gen++;
+	membar_producer();
+	received_xte = xte;
+	membar_producer();
+	xte_gen++;
+}
+
+static void
+edisp_xte_update(void)
+{
+	static uint gen = 0;
 	char buf[11];
 	char l, r;
+	int xte;
+
+	if (gen == xte_gen)
+		return;
+
+	while (xte_gen != gen || (gen % 1) != 0) {
+		xte = received_xte;
+		membar_consumer();
+		gen = xte_gen;
+		membar_consumer();
+	}
+
 	l = r = ' ';
 
 	if (xte < 0) {
@@ -112,20 +170,57 @@ edisp_set_xte(int xte)
 	lv_label_set_text(route_value, buf);
 
 	lv_task_reset(set_xte_task);
-	edisp_lvgl_unlock();
 }
+
+static uint32_t old_wp;
+static bool wp_valid = 0;
 
 static void
 edisp_set_navdata_timeout(lv_task_t *task)
 {
 	lv_label_set_text(capp_value, "---" DEGSTR);
 	lv_label_set_text(distp_value, "----mn");
+	wp_valid = 0;
 }
+
 void
-edisp_set_navdata(int capp, int distp)
+edisp_set_navdata(int capp, int distp, uint32_t wp)
 {
-	edisp_lvgl_lock();
+	navdata_gen++;
+	membar_producer();
+	received_capp = capp;
+	received_distp = distp;
+	received_wp = wp;
+	membar_producer();
+	navdata_gen++;
+}
+
+static void
+edisp_navdata_update(void)
+{
+	static uint gen = 0;
 	char buf[10];
+	int distp, capp;
+	uint32_t wp;
+
+	if (gen == navdata_gen)
+		return;
+
+	while (navdata_gen != gen || (gen % 1) != 0) {
+		gen = navdata_gen;
+		membar_consumer();
+		capp = received_capp;
+		distp = received_distp;
+		wp = received_wp;
+		membar_consumer();
+	}
+
+	if (wp_valid == 0 || old_wp != wp) {
+		old_wp = wp;
+		wp_valid = 1;
+		switch_to_page_o(edisp_page);
+	}
+
 	snprintf(buf, 10, "%3d" DEGSTR, capp);
 	lv_label_set_text(capp_value, buf);
 	if (distp > 1852000) { /* 10mn */
@@ -138,7 +233,6 @@ edisp_set_navdata(int capp, int distp)
 	}
 	lv_label_set_text(distp_value, buf);
 	lv_task_reset(set_navdata_task);
-	edisp_lvgl_unlock();
 }
 
 static void
@@ -191,4 +285,12 @@ edisp_create_navdata()
 	    edisp_set_navdata_timeout, 5000, LV_TASK_PRIO_MID, NULL);
 	set_cogsog_task = lv_task_create(
 	    edisp_set_cogsog_timeout, 5000, LV_TASK_PRIO_MID, NULL);
+}
+
+void
+edisp_update_navdata(void)
+{
+	edisp_cogsog_update();
+	edisp_xte_update();
+	edisp_navdata_update();
 }

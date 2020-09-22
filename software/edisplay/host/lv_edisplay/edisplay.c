@@ -34,15 +34,13 @@
 #include "edisplay_pages.h"
 #include "edisplay_font.h"
 #include "hal.h"
+#include "lv_eslider.h"
 
 static void page_list(void);
 static void light_slide(edisp_page_t *);
 
-static void enc_group_focus(lv_obj_t *, bool);
-static void enc_group_defocus(lv_obj_t *);
-
-static pthread_mutex_t edisp_lvgl_mtx;
-static pthread_mutexattr_t edisp_lvgl_mtx_attr;
+void enc_group_focus(lv_obj_t *, bool);
+void enc_group_defocus(lv_obj_t *);
 
 lv_style_t style_large_text;
 lv_style_t style_medium_text;
@@ -53,19 +51,21 @@ edisp_page_t epage_retro = {
 	light_slide,
 	"retro-eclairage",
 	false,
+	true,
 	NULL
 };
 
 static edisp_page_t *epages[] = {             
 	&epage_autopilot,
 	&epage_navdata,
+	&epage_autoparams,
 	&epage_retro,
 }; 
 
 static int current_page = 0;
 
 static lv_obj_t *lv_top;
-static lv_obj_t *lv_top_trs; /* transient top displays (menu, err msg, ...) */
+       lv_obj_t *lv_top_trs; /* transient top displays (menu, err msg, ...) */
 static lv_group_t *encg;
 
 static struct button {
@@ -134,11 +134,22 @@ deactivate_page(edisp_page_t *epage)
 static void
 switch_to_page(int new)
 {
-	if (epages[new] != &epage_retro) {
+	if (!epages[new]->epage_is_transient) {
 		deactivate_page(epages[current_page]);
 		current_page = new;
 	}
 	epages[new]->epage_activate(epages[new]);
+}
+
+void
+switch_to_page_o(lv_obj_t *page)
+{
+	for (int i = 0; i < sizeof(epages) / sizeof(epages[0]); i++) {
+		if (page == epages[i]->epage_page) {
+			switch_to_page(i);
+			return;
+		}
+	}
 }
 
 static void
@@ -282,22 +293,37 @@ btn_light_click_action(lv_obj_t * btn, lv_event_t event)
 	printf("\n");
 }
 
-static void
-btn_page_click_action(lv_obj_t * btn, lv_event_t event)
+void
+edisp_control_page(int move)
 {
 	int new_page;
-	switch(event) {
-	   case LV_EVENT_LONG_PRESSED:
-		page_list();
-		return;
-	   case LV_EVENT_SHORT_CLICKED:
-		new_page = current_page;
+	new_page = current_page;
+	if (move > 0) {
 		do {
 			new_page++;
 			if (new_page >= sizeof(epages) / sizeof(epages[0]))
 				new_page = 0;
 		} while (epages[new_page]->epage_in_page == false);
-		switch_to_page(new_page);
+	} else if (move < 0) {
+		do {
+			new_page--;
+			if (new_page < 0)
+				new_page =
+				    sizeof(epages) / sizeof(epages[0]) - 1;
+		} while (epages[new_page]->epage_in_page == false);
+	}
+	switch_to_page(new_page);
+}
+
+static void
+btn_page_click_action(lv_obj_t * btn, lv_event_t event)
+{
+	switch(event) {
+	   case LV_EVENT_LONG_PRESSED:
+		page_list();
+		return;
+	   case LV_EVENT_SHORT_CLICKED:
+		edisp_control_page(1);
 		return;
 	}
 		
@@ -320,7 +346,7 @@ btn_cancel_click_action(lv_obj_t * btn, lv_event_t event)
 	printf("\n");
 }
 
-static void
+void
 enc_group_focus(lv_obj_t *obj, bool force)
 {
 	lv_group_set_editing(encg, false);
@@ -332,7 +358,7 @@ enc_group_focus(lv_obj_t *obj, bool force)
 	lv_group_focus_freeze(encg, true);
 }
 
-static void
+void
 enc_group_defocus(lv_obj_t *obj)
 {
 	lv_group_set_editing(encg, false);
@@ -369,7 +395,7 @@ transient_list(const char *names, int select,
 	lv_ddlist_set_stay_open(list, true);
 	lv_coord_t h = lv_obj_get_height(list);
 	transient_open(list);
-	lv_obj_align(list, lv_top_trs, LV_ALIGN_CENTER, 0, -h/2);
+	lv_obj_align(list, lv_top_trs, LV_ALIGN_CENTER, 0, -h/2 + 5);
 	return list;
 }
 
@@ -378,11 +404,11 @@ light_action(lv_obj_t *slide, lv_event_t event)
 {
 	int key;
 	switch(event) {
-	case LV_EVENT_SHORT_CLICKED:
+	case LV_EVENT_APPLY:
 		transient_close(slide);
 		break;
 	case LV_EVENT_VALUE_CHANGED:
-		backlight_pwm = lv_slider_get_value(slide);
+		backlight_pwm = lv_eslider_get_value(slide);
 		set_backlight();
 		break;
 	case LV_EVENT_KEY:
@@ -403,9 +429,11 @@ light_action(lv_obj_t *slide, lv_event_t event)
 static void
 light_slide(edisp_page_t *epage)
 {
-	lv_obj_t *slide = lv_slider_create(lv_top_trs, NULL);
-	lv_slider_set_range(slide, 10, 100);
-	lv_slider_set_value(slide, backlight_pwm, LV_ANIM_OFF);
+	static const uint16_t light_steps[] = {10, 1};
+	lv_obj_t *slide = lv_eslider_create(lv_top_trs, NULL);
+	lv_eslider_set_range(slide, 10, 100);
+	lv_eslider_set_value(slide, backlight_pwm, LV_ANIM_OFF);
+	lv_eslider_set_steps(slide, light_steps, 2);
 	lv_obj_set_event_cb(slide, light_action);
 	transient_open(slide);
 	lv_obj_align(slide, lv_top_trs, LV_ALIGN_CENTER, 0, 0);
@@ -424,7 +452,6 @@ page_action(lv_obj_t *list, lv_event_t event)
 	switch(event) {
 	case LV_EVENT_VALUE_CHANGED:
 		value = lv_ddlist_get_selected(list);
-		printf("new page %d\n", value);
 		transient_close(list);
 		switch_to_page(value);
 		break;
@@ -537,25 +564,6 @@ empty_style_mod_cb(lv_group_t * group, lv_style_t * style)
 {
 }
 
-void
-edisp_lvgl_lock()
-{
-	if (pthread_mutex_lock(&edisp_lvgl_mtx)) {
-		fprintf(stderr, "pthread_mutex_lock(&edisp_lvgl_mtx) failed\n");
-		abort();
-	}
-}
-
-void
-edisp_lvgl_unlock()
-{
-	if (pthread_mutex_unlock(&edisp_lvgl_mtx)) {
-		fprintf(stderr,
-		    "pthread_mutex_unlock(&edisp_lvgl_mtx) failed\n");
-		abort();
-	}
-}
-
 /**
  * Create a edisplay application
  */
@@ -565,13 +573,6 @@ edisplay_app_init(void)
 	int i;
 	static lv_style_t style_page;
 
-	pthread_mutexattr_init(&edisp_lvgl_mtx_attr);
-	pthread_mutexattr_settype(&edisp_lvgl_mtx_attr, PTHREAD_MUTEX_ERRORCHECK);
-	if (pthread_mutex_init(&edisp_lvgl_mtx, &edisp_lvgl_mtx_attr)) {
-		fprintf(stderr,
-		    "pthread_mutex_init(&edisp_lvgl_mtx) failed\n");
-		abort();
-	}
 	lv_init();
 
 	encg = lv_group_create();
@@ -628,8 +629,9 @@ edisplay_app_run(void)
 	}
 
 	while(1) {
-		edisp_lvgl_lock();
 		lv_task_handler();
+		edisp_update_navdata();
+		edisp_update_autopilot();
 		if (gettimeofday(&tv, NULL) < 0) {
 			err(1, "gettimeofday");
 		}
@@ -637,7 +639,6 @@ edisplay_app_run(void)
 		tv_prev = tv;
 		ticktime = tv_diff.tv_sec * 1000 + tv_diff.tv_usec / 1000;
 		lv_tick_inc(ticktime);
-		edisp_lvgl_unlock();
 		usleep(10 * 1000);
 	}
 }

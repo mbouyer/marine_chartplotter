@@ -57,6 +57,7 @@ bool private_command_factors_rx::handle(const nmea2000_frame &f)
 	int err = f.frame2int16(1);
 	int dif = f.frame2int16(3);
 	int dif2 = f.frame2int16(5);
+	edisp_set_auto_factors(slot, err, dif, dif2);
 	return true;
 }
 
@@ -76,6 +77,16 @@ bool private_remote_control_rx::handle(const nmea2000_frame &f)
 		case CONTROL_LIGHT_REV:
 			edisp_set_light(LIGHT_MODE_REV);
 			break;
+		}
+		break;
+	case CONTROL_REMOTE_DISPLAY:
+		switch(subtype) {
+		case CONTROL_REMOTE_DISPLAY_PAGE:
+		    {
+			char move = f.frame2int8(2);
+			edisp_control_page(move);
+			break;
+		    }
 		}
 		break;
 	}

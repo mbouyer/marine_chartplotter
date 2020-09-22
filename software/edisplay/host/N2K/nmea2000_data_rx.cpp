@@ -55,9 +55,11 @@ bool nmea2000_xte_rx::handle(const nmea2000_frame &f)
 bool nmea2000_navdata_rx::fast_handle(const nmea2000_frame &f)
 {
 	unsigned int capp, distp;
+	uint32_t wp;
 
 	capp = f.frame2uint16(14);
 	distp = f.frame2uint32(1);
-	edisp_set_navdata(urad2deg(capp), distp);
+	wp  = f.frame2uint32(20);
+	edisp_set_navdata(urad2deg(capp), distp, wp);
 	return true;
 }

@@ -29,6 +29,7 @@ typedef struct edisp_page {
 	void (*epage_activate)(struct edisp_page *);
 	const char *epage_menu;
 	bool epage_in_page;
+	bool epage_is_transient;
 	lv_obj_t *epage_page;
 } edisp_page_t;
 
@@ -36,25 +37,30 @@ extern lv_style_t style_large_text;
 extern lv_style_t style_medium_text;
 extern lv_style_t style_small_text;
 
+extern lv_obj_t *lv_top_trs;
+
 void activate_page(edisp_page_t *);
 void deactivate_page(edisp_page_t *);
+void enc_group_focus(lv_obj_t *, bool);
+void enc_group_defocus(lv_obj_t *);
 void transient_open(lv_obj_t *);
 void transient_close(lv_obj_t *);
 lv_obj_t *transient_list(const char *, int, void (*)(lv_obj_t *, lv_event_t));
-
+void switch_to_page_o(lv_obj_t *);
 
 void print_ev(lv_event_t event);
 
 extern edisp_page_t epage_autopilot;
+extern edisp_page_t epage_autoparams;
 void edisp_autopilot_set_cogsog(const char *, const char *);
 void edisp_autopilot_startstop(bool);
 
 extern edisp_page_t epage_navdata;
 
+void edisp_update_navdata(void);
+void edisp_update_autopilot(void);
+
 #define BUTTON_MOB 0
 #define BUTTON_LIGHT 1
 #define BUTTON_PAGE 2
 #define BUTTON_CANCEL 3
-
-void edisp_lvgl_lock(void);
-void edisp_lvgl_unlock(void);

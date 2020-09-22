@@ -32,13 +32,15 @@ extern "C" {
 void edisp_set_attitude(int, int);
 void edisp_set_cogsog(int, int);
 void edisp_set_xte(int);
-void edisp_set_navdata(int, int);
+void edisp_set_navdata(int, int, uint32_t);
 void edisp_set_light(int);
 #define LIGHT_MODE_OFF 0
 #define LIGHT_MODE_ON 1
 #define LIGHT_MODE_REV 2
+void edisp_control_page(int);
 
 void edisp_set_auto_status(uint8_t, double, uint8_t, uint8_t);
+void edisp_set_auto_factors(uint8_t, int, int, int);
 /* has to match nmea2000_pgn.h value from canbus_autopilot */
 #define AUTO_OFF	0x0000
 #define AUTO_STANDBY	0x0001
@@ -53,12 +55,14 @@ bool n2ks_auto_engage(double, uint8_t, uint8_t);
 
 bool n2ks_auto_errack(uint8_t);
 bool n2ks_auto_factors(int8_t, int, int, int);
-bool n2ks_auto_factorsreq(int8_t);
+bool n2ks_auto_factors_request(int8_t);
 bool n2ks_auto_acuator(int8_t);
 bool n2ks_control_mob(void);
 bool n2ks_control_light_mode(int);
 
 void n2k_set_command_address(int);
+
+#define NPARAMS 6
 
 #ifdef __cplusplus
 } /* extern "C" */
