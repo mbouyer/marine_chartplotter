@@ -58,6 +58,7 @@ edisp_page_t epage_retro = {
 static edisp_page_t *epages[] = {             
 	&epage_autopilot,
 	&epage_navdata,
+	&epage_winddata,
 	&epage_autoparams,
 	&epage_retro,
 }; 
@@ -632,6 +633,7 @@ edisplay_app_run(void)
 		lv_task_handler();
 		edisp_update_navdata();
 		edisp_update_autopilot();
+		edisp_update_winddata();
 		if (gettimeofday(&tv, NULL) < 0) {
 			err(1, "gettimeofday");
 		}

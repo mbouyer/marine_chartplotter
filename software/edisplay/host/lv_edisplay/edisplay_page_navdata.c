@@ -101,6 +101,7 @@ edisp_cogsog_update(void)
 	}
 
 	int kn = sog * 360 / 1852; /* kn * 10 */
+	edisp_winddata_set_cogsog(kn, cog);
 	char cogs[6];
 	char sogs[6];
 	snprintf(cogs, 6, "%3d" DEGSTR, cog);
