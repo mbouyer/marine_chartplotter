@@ -208,7 +208,7 @@ edisp_create_winddata()
 	awa_value = lv_label_create(dir_value, NULL);
 	lv_label_set_style(awa_value, LV_LABEL_STYLE_MAIN, &text_style);
 	lv_label_set_body_draw(awa_value, 1);
-	lv_label_set_text(awa_value, "awa" DEGSTR);
+	lv_label_set_text(awa_value, "awa" DEGSTR "a");
 	int w = lv_obj_get_width(awa_value);
 	int h = lv_obj_get_height(awa_value);
 	lv_obj_align(awa_value, dir_value, LV_ALIGN_CENTER, 0, -h / 2);
@@ -216,29 +216,31 @@ edisp_create_winddata()
 	twa_value = lv_label_create(dir_value, NULL);
 	lv_label_set_style(twa_value, LV_LABEL_STYLE_MAIN, &text_style);
 	lv_label_set_body_draw(twa_value, 1);
-	lv_label_set_text(twa_value, "twa" DEGSTR);
+	lv_label_set_text(twa_value, "twa" DEGSTR "v");
 	w = lv_obj_get_width(twa_value);
 	h = lv_obj_get_height(twa_value);
 	lv_obj_align(twa_value, awa_value, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
 
 	tws_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(tws_value, LV_LABEL_STYLE_MAIN, &text_style);
-	lv_label_set_text(tws_value, "tws-n");
+	lv_label_set_text(tws_value, "twsn");
 	w = lv_obj_get_width(tws_value);
 	h = lv_obj_get_height(tws_value);
-	lv_obj_align(tws_value, aws_value, LV_ALIGN_OUT_LEFT_MID, 5 + w, 0);
+	lv_obj_align(tws_value, aws_value, LV_ALIGN_OUT_LEFT_MID, 5 + w, h/2);
 
 	aws_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(aws_value, LV_LABEL_STYLE_MAIN, &text_style);
-	lv_label_set_text(aws_value, "aws-n");
+	lv_label_set_text(aws_value, "awsn");
 	w = lv_obj_get_width(aws_value);
 	h = lv_obj_get_height(aws_value);
 	lv_obj_align(aws_value, tws_value, LV_ALIGN_OUT_TOP_LEFT, 0, 0);
 
 	vmg_value = lv_label_create(edisp_page, NULL);
-	lv_label_set_style(vmg_value, LV_LABEL_STYLE_MAIN, &text_style);
+	lv_label_set_style(vmg_value, LV_LABEL_STYLE_MAIN, &style_large_text);
 	lv_label_set_text(vmg_value, "vmg-n");
-	lv_obj_align(vmg_value, tws_value, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+	w = lv_obj_get_width(vmg_value);
+	h = lv_obj_get_height(vmg_value);
+	lv_obj_align(vmg_value, edisp_page, LV_ALIGN_OUT_BOTTOM_LEFT, 5, -h - 5);
 
 	set_winddata_task = lv_task_create(
 	    edisp_set_winddata_timeout, 5000, LV_TASK_PRIO_MID, NULL);
