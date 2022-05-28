@@ -24,8 +24,8 @@
 #define LV_GAUGE_DEF_LABEL_COUNT 6
 #define LV_GAUGE_DEF_LINE_COUNT 21 /*Should be: ((label_cnt - 1) * internal_lines) + 1*/
 #define LV_GAUGE_DEF_ANGLE 220
-#define LV_GAUGE_INTERPOLATE_SHIFT 5 /*Interpolate the needle drawing between to degrees*/
-#define LV_GAUGE_INTERPOLATE_MASK 0x1F
+#define LV_GAUGE_INTERPOLATE_SHIFT 0 /*Interpolate the needle drawing between to degrees*/
+#define LV_GAUGE_INTERPOLATE_MASK 0x1
 
 /**********************
  *      TYPEDEFS
@@ -356,7 +356,7 @@ static void lv_gauge_draw_scale(lv_obj_t * gauge, const lv_area_t * mask)
     int16_t max              = lv_gauge_get_max_value(gauge);
 
     uint8_t i;
-    for(i = 0; i < label_num; i++) {
+    for(i = ((scale_angle == 360) ? 1 : 0); i < label_num; i++) {
         /*Calculate the position a scale label*/
         int16_t angle = (i * scale_angle) / (label_num - 1) + angle_ofs;
 
