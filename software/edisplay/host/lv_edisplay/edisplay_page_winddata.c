@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <err.h>
+#include <math.h>
 #include <sys/time.h>
 #include <sys/atomic.h>
 #include "lvgl/lvgl.h"
@@ -41,6 +42,7 @@ static lv_obj_t *vmg_value;
 
 static volatile int received_heading;
 static bool heading_valid = 0;
+
 static volatile int received_cog;
 static volatile int received_sog;
 static bool cogsog_valid = 0;
@@ -75,11 +77,11 @@ edisp_page_t epage_winddata = {
 static void
 edisp_set_cogsog_timeout(lv_task_t *task)
 {
-#if 0
-	edisp_autopilot_set_cogsog("---" DEGSTR, "---n");
-	lv_label_set_text(vmg_value, "---" DEGSTR);
-	lv_label_set_text(vittf1_value, "---n");
-#endif
+	lv_gauge_set_value(dir_value, GAUGE_N_TWA, 0);
+	lv_gauge_set_value(dir_value, GAUGE_N_COG, 0);
+	lv_label_set_text(twa_value, "---" DEGSTR "v");
+	lv_label_set_text(tws_value, "---n");
+	lv_label_set_text(vmg_value, "----n");
 	cogsog_valid = 0;
 }
 
@@ -96,11 +98,11 @@ edisp_winddata_set_cogsog(int sog, int cog) /* kn * 10, deg */
 static void
 edisp_set_heading_timeout(lv_task_t *task)
 {
-#if 0
-	edisp_autopilot_set_cogsog("---" DEGSTR, "---n");
-	lv_label_set_text(vmg_value, "---" DEGSTR);
-	lv_label_set_text(vittf1_value, "---n");
-#endif
+	lv_gauge_set_value(dir_value, GAUGE_N_TWA, 0);
+	lv_gauge_set_value(dir_value, GAUGE_N_COG, 0);
+	lv_label_set_text(twa_value, "---" DEGSTR "v");
+	lv_label_set_text(tws_value, "---n");
+	lv_label_set_text(vmg_value, "----n");
 	heading_valid = 0;
 }
 
@@ -122,44 +124,14 @@ edisp_set_winddata(int adir, int aspeed)
 	received_aws = aspeed;
 	membar_producer();
 	wind_gen++;
-}
-
-static void
-edisp_wind_update(void)
-{
-	static uint gen = 0;
-	char buf[11];
-	int aws, awa;
-
-	if (gen == wind_gen)
-		return;
-
-	while (wind_gen != gen || (gen % 1) != 0) {
-		awa = received_awa;
-		aws = received_aws;
-		membar_consumer();
-		gen = wind_gen;
-		membar_consumer();
-	}
-	if (awa > 180) {
-		awa = awa - 360;
-	}
-	lv_gauge_set_value(dir_value, 0, awa);
-	snprintf(buf, sizeof(buf), "%3d" DEGSTR "a", abs(awa));
-	lv_label_set_text(awa_value, buf);
-
-	int kn = aws * 360 / 1852; /* kn * 10 */
-	snprintf(buf, 6, "%3dn", (kn + 5) / 10); 
-	lv_label_set_text(aws_value, buf);
-
-	lv_task_reset(set_winddata_task);
+	wind_valid = 1;
 }
 
 static void
 edisp_set_winddata_timeout(lv_task_t *task)
 {
 	lv_gauge_set_value(dir_value, GAUGE_N_AWA, 0);
-	lv_gauge_set_value(dir_value, GAUGE_N_TWA, 1);
+	lv_gauge_set_value(dir_value, GAUGE_N_TWA, 0);
 	lv_label_set_text(awa_value, "---" DEGSTR "a");
 	lv_label_set_text(twa_value, "---" DEGSTR "v");
 	lv_label_set_text(aws_value, "---n");
@@ -206,14 +178,14 @@ edisp_create_winddata()
 	twa_value = lv_label_create(dir_value, NULL);
 	lv_label_set_style(twa_value, LV_LABEL_STYLE_MAIN, &text_style);
 	lv_label_set_body_draw(twa_value, 1);
-	lv_label_set_text(twa_value, "twa" DEGSTR "v");
+	lv_label_set_text(twa_value, "---" DEGSTR "v");
 	w = lv_obj_get_width(twa_value);
 	h = lv_obj_get_height(twa_value);
 	lv_obj_align(twa_value, awa_value, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
 
 	tws_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(tws_value, LV_LABEL_STYLE_MAIN, &text_style);
-	lv_label_set_text(tws_value, "twsn");
+	lv_label_set_text(tws_value, "---n");
 	w = lv_obj_get_width(tws_value);
 	h = lv_obj_get_height(tws_value);
 	lv_obj_align(tws_value, aws_value, LV_ALIGN_OUT_LEFT_MID, 5 + w, h/2);
@@ -227,7 +199,7 @@ edisp_create_winddata()
 
 	vmg_value = lv_label_create(edisp_page, NULL);
 	lv_label_set_style(vmg_value, LV_LABEL_STYLE_MAIN, &style_large_text);
-	lv_label_set_text(vmg_value, "vmg-n");
+	lv_label_set_text(vmg_value, "----n");
 	w = lv_obj_get_width(vmg_value);
 	h = lv_obj_get_height(vmg_value);
 	lv_obj_align(vmg_value, edisp_page, LV_ALIGN_OUT_BOTTOM_LEFT, 5, -h - 5);
@@ -243,5 +215,135 @@ edisp_create_winddata()
 void
 edisp_update_winddata(void)
 {
-	edisp_wind_update();
+	static uint gen = 0;
+	char buf[11];
+	int _aws, _awa;
+	double aws, awa;
+	double tws, twa;
+	double cog, sog, heading, b_cog;
+	double tw_x, tw_y, aw_x, aw_y, vog_x, vog_y;
+	int i, vmg;
+
+#define NAVG 100
+	static int average_aws[NAVG] = {0};
+	static int average_awa[NAVG] = {0};
+	static int average_heading[NAVG] = {0};
+	static int average_sog[NAVG] = {0};
+	static int average_cog[NAVG] = {0};
+	static int avg = 0;
+
+
+	if (!wind_valid) {
+		memset(average_aws, 0, sizeof(average_aws));
+		memset(average_awa, 0, sizeof(average_awa));
+		return;
+	}
+
+	if (gen == wind_gen)
+		return;
+
+	while (wind_gen != gen || (gen % 1) != 0) {
+		_awa = received_awa;
+		_aws = received_aws;
+		membar_consumer();
+		gen = wind_gen;
+		membar_consumer();
+	}
+	if (_awa > 180) {
+		_awa = _awa - 360;
+	}
+	lv_gauge_set_value(dir_value, GAUGE_N_AWA, _awa);
+	snprintf(buf, sizeof(buf), "%3d" DEGSTR "a", abs(_awa));
+	lv_label_set_text(awa_value, buf);
+
+	int kn = _aws * 360 / 1852; /* kn * 10 */
+	snprintf(buf, 6, "%3dn", (kn + 5) / 10); 
+	lv_label_set_text(aws_value, buf);
+
+	lv_task_reset(set_winddata_task);
+
+	average_aws[avg] = kn;
+	average_awa[avg] = _awa;
+	avg++;
+	if (avg == NAVG)
+		avg = 0;
+
+	if (!cogsog_valid || !heading_valid) {
+		memset(average_cog, 0, sizeof(average_cog));
+		memset(average_sog, 0, sizeof(average_sog));
+		memset(average_heading, 0, sizeof(average_heading));
+		return;
+	}
+
+	average_cog[avg] = received_cog;
+	average_sog[avg] = received_sog;
+	average_heading[avg] = received_heading;
+
+	aws = awa = sog = cog = heading = 0;
+	for (i = 0; i < NAVG; i++) {
+		aws += average_aws[i];
+		awa += average_awa[i];
+		cog += average_cog[i];
+		sog += average_sog[i];
+		heading += average_heading[i];
+	}
+	aws /= NAVG;
+	awa /= NAVG;
+	cog /= NAVG;
+	sog /= NAVG;
+	heading /= NAVG;
+
+	b_cog = (cog - heading);
+	if (b_cog > 180)
+		b_cog = b_cog - 360;
+	if (b_cog < -180)
+		b_cog = b_cog + 360;
+	lv_gauge_set_value(dir_value, GAUGE_N_COG, b_cog);
+
+	/* convert angles to rad */
+#define RADPERDEG 0.017453293
+	b_cog *= RADPERDEG;
+	awa *= RADPERDEG;
+
+	/* compute wind vectors */
+	vog_x = cos(b_cog) * sog;
+	vog_y = sin(b_cog) * sog;
+	aw_x = cos(awa) * aws;
+	aw_y = sin(awa) * aws;
+
+	tw_x = vog_x - aw_x;
+	tw_y = vog_y - aw_y;
+
+	/* final values */
+	tws = sqrt(tw_x * tw_x + tw_y * tw_y);
+	twa = atan2(-tw_y, -tw_x);
+	if (tws > 10) {
+		/* now compute VMG */
+		vmg = cos(twa - b_cog) * sog;
+		/* and display */
+		twa /= RADPERDEG;
+		lv_gauge_set_value(dir_value, GAUGE_N_TWA, twa);
+		snprintf(buf, sizeof(buf), "%3d" DEGSTR "v", abs(twa));
+		lv_label_set_text(twa_value, buf);
+		snprintf(buf, 6, "%3dn", (int)((tws + 5) / 10)); 
+		lv_label_set_text(tws_value, buf);
+		if (vmg >= 0) {
+			snprintf(buf, 6, "%2d.%1dn", vmg / 10, abs(vmg) % 10);
+		} else {
+			if (vmg >-100) {
+				snprintf(buf, 6, "%2d.%1dn",
+				    vmg / 10, abs(vmg) % 10);
+			} else {
+				snprintf(buf, 6, " %3dn",
+				    vmg / 10);
+			}
+		}
+		lv_label_set_text(vmg_value, buf);
+
+	} else {
+		lv_gauge_set_value(dir_value, GAUGE_N_TWA, 0);
+		lv_label_set_text(twa_value, "---" DEGSTR "v");
+		lv_label_set_text(tws_value, "---n");
+		lv_label_set_text(vmg_value, "----n");
+	}
 }
