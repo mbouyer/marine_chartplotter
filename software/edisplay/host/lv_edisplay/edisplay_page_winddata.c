@@ -331,8 +331,9 @@ edisp_update_winddata(void)
 			snprintf(buf, 6, "%2d.%1dn", vmg / 10, abs(vmg) % 10);
 		} else {
 			if (vmg >-100) {
-				snprintf(buf, 6, "%2d.%1dn",
-				    vmg / 10, abs(vmg) % 10);
+				vmg = -vmg;
+				snprintf(buf, 6, "-%1d.%1dn",
+				    vmg / 10, vmg % 10);
 			} else {
 				snprintf(buf, 6, " %3dn",
 				    vmg / 10);
