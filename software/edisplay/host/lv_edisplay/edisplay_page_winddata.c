@@ -23,6 +23,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <err.h>
 #include <sys/time.h>
@@ -38,10 +39,19 @@ static lv_obj_t *tws_value;
 static lv_obj_t *twa_value;
 static lv_obj_t *vmg_value;
 
+static volatile int received_heading;
+static bool heading_valid = 0;
 static volatile int received_cog;
 static volatile int received_sog;
-static volatile uint cogsog_gen;
+static bool cogsog_valid = 0;
 
+static volatile int received_awa;
+static volatile int received_aws;
+static volatile uint wind_gen;
+static bool wind_valid = 0;
+
+
+static lv_task_t *set_heading_task;
 static lv_task_t *set_cogsog_task;
 static lv_task_t *set_winddata_task;
 
@@ -57,6 +67,10 @@ edisp_page_t epage_winddata = {
 
 #define edisp_page (epage_winddata.epage_page)
 
+#define GAUGE_N_AWA	0
+#define GAUGE_N_TWA	1
+#define GAUGE_N_COG	2
+
 
 static void
 edisp_set_cogsog_timeout(lv_task_t *task)
@@ -66,113 +80,88 @@ edisp_set_cogsog_timeout(lv_task_t *task)
 	lv_label_set_text(vmg_value, "---" DEGSTR);
 	lv_label_set_text(vittf1_value, "---n");
 #endif
+	cogsog_valid = 0;
 }
 
 void
 edisp_winddata_set_cogsog(int sog, int cog) /* kn * 10, deg */
 {
-	cogsog_gen++;
-	membar_producer();
+	/* called from display thread context, no concurent read/update */
 	received_cog = cog;
 	received_sog = sog;
-	membar_producer();
-	cogsog_gen++;
+	lv_task_reset(set_cogsog_task);
+	cogsog_valid = 1;
 }
 
 static void
-edisp_cogsog_update(void)
+edisp_set_heading_timeout(lv_task_t *task)
 {
 #if 0
-	static uint gen = 0;
-	int cog, sog;
-
-	if (gen == cogsog_gen)
-		return;
-
-	while (cogsog_gen != gen || (gen % 1) != 0) {
-		gen = cogsog_gen;
-		membar_consumer();
-		sog = received_sog;
-		cog = received_cog;
-		membar_consumer();
-	}
-
-	int kn = sog * 360 / 1852; /* kn * 10 */
-	char cogs[6];
-	char sogs[6];
-	snprintf(cogs, 6, "%3d" DEGSTR, cog);
-
-	if (kn > 100) {
-		snprintf(sogs, 6, "%3dn", kn / 10);
-	} else {
-		snprintf(sogs, 6, "%d.%dn", kn / 10, kn % 10);
-	}
-	edisp_autopilot_set_cogsog(cogs, sogs);
-	lv_label_set_text(vmg_value, cogs);
-	lv_label_set_text(vittf1_value, sogs);
+	edisp_autopilot_set_cogsog("---" DEGSTR, "---n");
+	lv_label_set_text(vmg_value, "---" DEGSTR);
+	lv_label_set_text(vittf1_value, "---n");
 #endif
-
-	lv_task_reset(set_cogsog_task);
+	heading_valid = 0;
 }
 
 void
-edisp_set_wind(int adir, int aspeed)
+edisp_winddata_set_heading(int heading)
 {
-#if 0
-	xte_gen++;
+	/* called from display thread context, no concurent read/update */
+	received_heading = heading;
+	lv_task_reset(set_heading_task);
+	heading_valid = 1;
+}
+
+void
+edisp_set_winddata(int adir, int aspeed)
+{
+	wind_gen++;
 	membar_producer();
-	received_xte = xte;
+	received_awa = adir;
+	received_aws = aspeed;
 	membar_producer();
-	xte_gen++;
-#endif
+	wind_gen++;
 }
 
 static void
 edisp_wind_update(void)
 {
-#if 0
 	static uint gen = 0;
 	char buf[11];
-	char l, r;
-	int xte;
+	int aws, awa;
 
-	if (gen == xte_gen)
+	if (gen == wind_gen)
 		return;
 
-	while (xte_gen != gen || (gen % 1) != 0) {
-		xte = received_xte;
+	while (wind_gen != gen || (gen % 1) != 0) {
+		awa = received_awa;
+		aws = received_aws;
 		membar_consumer();
-		gen = xte_gen;
+		gen = wind_gen;
 		membar_consumer();
 	}
-
-	l = r = ' ';
-
-	if (xte < 0) {
-		r = '>';
-		xte = -xte;
-	} else {
-		l = '<';
+	if (awa > 180) {
+		awa = awa - 360;
 	}
-	if (xte > 1852000) { /* 10mn */
-		snprintf(buf, 11, "%c %4dmn %c", l, xte / 185200, r);
-	} else if (xte > 18520UL) { /* 0.1mn */
-		snprintf(buf, 11, "%c %1d.%02dmn %c", l, (xte / 185200),
-		    (xte % 185200) / 1852, r);
-	} else {
-		snprintf(buf, 11, "%c  %3dm  %c", l, xte / 100, r);
-	}
-	lv_label_set_text(route_value, buf);
-#endif
+	lv_gauge_set_value(dir_value, 0, awa);
+	snprintf(buf, sizeof(buf), "%3d" DEGSTR "a", abs(awa));
+	lv_label_set_text(awa_value, buf);
+
+	int kn = aws * 360 / 1852; /* kn * 10 */
+	snprintf(buf, 6, "%3dn", (kn + 5) / 10); 
+	lv_label_set_text(aws_value, buf);
 
 	lv_task_reset(set_winddata_task);
 }
 
-static bool wind_valid = 0;
-
 static void
 edisp_set_winddata_timeout(lv_task_t *task)
 {
+	lv_gauge_set_value(dir_value, GAUGE_N_AWA, 0);
+	lv_gauge_set_value(dir_value, GAUGE_N_TWA, 1);
+	lv_label_set_text(awa_value, "---" DEGSTR "a");
+	lv_label_set_text(twa_value, "---" DEGSTR "v");
 	lv_label_set_text(aws_value, "---n");
 	lv_label_set_text(tws_value, "---n");
 	lv_label_set_text(vmg_value, "----n");
@@ -182,7 +171,7 @@ edisp_set_winddata_timeout(lv_task_t *task)
 static void
 edisp_create_winddata()
 {
-	lv_color_t colors[2] = {LV_COLOR_BLACK, LV_COLOR_BLACK};
+	lv_color_t colors[3] = {LV_COLOR_BLACK, LV_COLOR_BLACK, LV_COLOR_BLACK};
 	static lv_style_t w_style;
 	static lv_style_t text_style;
 
@@ -197,13 +186,14 @@ edisp_create_winddata()
 	w_style.body.radius = 20;
 
 	dir_value = lv_gauge_create(edisp_page, NULL);
-	lv_gauge_set_needle_count(dir_value, 2, colors);
+	lv_gauge_set_needle_count(dir_value, 3, colors);
 	lv_obj_set_size(dir_value, 90, 90);
 	lv_obj_align(dir_value, edisp_page, LV_ALIGN_CENTER, 80 - 45 - 10, 0);
 	lv_gauge_set_range(dir_value, -180, 180);
 	lv_gauge_set_scale(dir_value, 360, 13, 0);
-	lv_gauge_set_value(dir_value, 0, 87);
-	lv_gauge_set_value(dir_value, 1, 132);
+	lv_gauge_set_value(dir_value, 0, 0);
+	lv_gauge_set_value(dir_value, 1, 0);
+	lv_gauge_set_value(dir_value, 2, 0);
 
 	awa_value = lv_label_create(dir_value, NULL);
 	lv_label_set_style(awa_value, LV_LABEL_STYLE_MAIN, &text_style);
@@ -244,6 +234,8 @@ edisp_create_winddata()
 
 	set_winddata_task = lv_task_create(
 	    edisp_set_winddata_timeout, 5000, LV_TASK_PRIO_MID, NULL);
+	set_heading_task = lv_task_create(
+	    edisp_set_heading_timeout, 5000, LV_TASK_PRIO_MID, NULL);
 	set_cogsog_task = lv_task_create(
 	    edisp_set_cogsog_timeout, 5000, LV_TASK_PRIO_MID, NULL);
 }
@@ -251,6 +243,5 @@ edisp_create_winddata()
 void
 edisp_update_winddata(void)
 {
-	edisp_cogsog_update();
 	edisp_wind_update();
 }

@@ -212,6 +212,7 @@ edisp_attitude_update(void)
 		roll = received_roll;
 		membar_consumer();    
 	}
+	edisp_winddata_set_heading(heading);
 
 	snprintf(buf, 6, "%3d" DEGSTR, heading);
 	lv_label_set_text(cap_value, buf);

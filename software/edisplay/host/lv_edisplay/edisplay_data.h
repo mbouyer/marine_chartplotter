@@ -33,6 +33,7 @@ void edisp_set_attitude(int, int);
 void edisp_set_cogsog(int, int);
 void edisp_set_xte(int);
 void edisp_set_navdata(int, int, uint32_t);
+void edisp_set_winddata(int, int);
 void edisp_set_light(int);
 #define LIGHT_MODE_OFF 0
 #define LIGHT_MODE_ON 1
