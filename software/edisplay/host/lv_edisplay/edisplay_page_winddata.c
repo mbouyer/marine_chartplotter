@@ -212,6 +212,33 @@ edisp_create_winddata()
 	    edisp_set_cogsog_timeout, 5000, LV_TASK_PRIO_MID, NULL);
 }
 
+typedef struct vect {
+	double x;
+	double y;
+} vect_t;
+
+#define RADPERDEG 0.017453293
+
+static void
+pol2vect(int deg, int len, vect_t *v)
+{
+	double rad = (double)deg * RADPERDEG;
+	v->x = cos(rad) * len;
+	v->y = sin(rad) * len;
+}
+
+static void
+vect2pol(double *deg, double *len, vect_t *v)
+{
+	double _rad;
+	if (len != NULL)
+		*len = sqrt(v->x * v->x + v->y * v->y);
+	if (deg != NULL) {
+		_rad = atan2(v->y, v->x);
+		*deg = _rad / RADPERDEG;
+	}
+}
+
 void
 edisp_update_winddata(void)
 {
@@ -221,21 +248,18 @@ edisp_update_winddata(void)
 	double aws, awa;
 	double tws, twa;
 	double cog, sog, heading, b_cog;
-	double tw_x, tw_y, aw_x, aw_y, vog_x, vog_y;
 	int i, vmg;
+	vect_t vaw, vtw, vheading, vog;
 
 #define NAVG 100
-	static int average_aws[NAVG] = {0};
-	static int average_awa[NAVG] = {0};
-	static int average_heading[NAVG] = {0};
-	static int average_sog[NAVG] = {0};
-	static int average_cog[NAVG] = {0};
+	static vect_t average_aw[NAVG] = {0};
+	static vect_t average_heading[NAVG] = {0};
+	static vect_t average_og[NAVG] = {0};
 	static int avg = 0;
 
 
 	if (!wind_valid) {
-		memset(average_aws, 0, sizeof(average_aws));
-		memset(average_awa, 0, sizeof(average_awa));
+		memset(average_aw, 0, sizeof(average_aw));
 		return;
 	}
 
@@ -262,36 +286,38 @@ edisp_update_winddata(void)
 
 	lv_task_reset(set_winddata_task);
 
-	average_aws[avg] = kn;
-	average_awa[avg] = _awa;
+	pol2vect(_awa, kn, &average_aw[avg]);
 	avg++;
 	if (avg == NAVG)
 		avg = 0;
 
 	if (!cogsog_valid || !heading_valid) {
-		memset(average_cog, 0, sizeof(average_cog));
-		memset(average_sog, 0, sizeof(average_sog));
+		memset(average_og, 0, sizeof(average_og));
 		memset(average_heading, 0, sizeof(average_heading));
 		return;
 	}
 
-	average_cog[avg] = received_cog;
-	average_sog[avg] = received_sog;
-	average_heading[avg] = received_heading;
+	pol2vect(received_cog, received_sog, &average_og[avg]);
+	pol2vect(received_heading, 1, &average_heading[avg]);
 
-	aws = awa = sog = cog = heading = 0;
+	vaw.x = vaw.y = 0;
+	vog.x = vog.y = 0;
+	vheading.x = vheading.y = 0;
 	for (i = 0; i < NAVG; i++) {
-		aws += average_aws[i];
-		awa += average_awa[i];
-		cog += average_cog[i];
-		sog += average_sog[i];
-		heading += average_heading[i];
+		vaw.x += average_aw[i].x;
+		vaw.y += average_aw[i].y;
+		vog.x += average_og[i].x;
+		vog.y += average_og[i].y;
+		vheading.x += average_heading[i].x;
+		vheading.y += average_heading[i].y;
 	}
+
+	vect2pol(&awa, &aws, &vaw);
+	vect2pol(&cog, &sog, &vog);
+	vect2pol(&heading, NULL, &vheading);
+
 	aws /= NAVG;
-	awa /= NAVG;
-	cog /= NAVG;
 	sog /= NAVG;
-	heading /= NAVG;
 
 	b_cog = (cog - heading);
 	if (b_cog > 180)
@@ -300,28 +326,18 @@ edisp_update_winddata(void)
 		b_cog = b_cog + 360;
 	lv_gauge_set_value(dir_value, GAUGE_N_COG, b_cog);
 
-	/* convert angles to rad */
-#define RADPERDEG 0.017453293
-	b_cog *= RADPERDEG;
-	awa *= RADPERDEG;
-
-	/* compute wind vectors */
-	vog_x = cos(b_cog) * sog;
-	vog_y = sin(b_cog) * sog;
-	aw_x = cos(awa) * aws;
-	aw_y = sin(awa) * aws;
-
-	tw_x = vog_x - aw_x;
-	tw_y = vog_y - aw_y;
+	/* compute true wind vector */
+	vtw.x = vaw.x - vog.x;
+	vtw.y = vaw.y - vog.y;
 
 	/* final values */
-	tws = sqrt(tw_x * tw_x + tw_y * tw_y);
-	twa = atan2(-tw_y, -tw_x);
+	vect2pol(&twa, &tws, &vtw);
+	tws /= NAVG;
+
 	if (tws > 10) {
 		/* now compute VMG */
-		vmg = cos(twa - b_cog) * sog;
+		vmg = cos((twa - b_cog) * RADPERDEG) * sog;
 		/* and display */
-		twa /= RADPERDEG;
 		lv_gauge_set_value(dir_value, GAUGE_N_TWA, twa);
 		snprintf(buf, sizeof(buf), "%3d" DEGSTR "v", abs(twa));
 		lv_label_set_text(twa_value, buf);
