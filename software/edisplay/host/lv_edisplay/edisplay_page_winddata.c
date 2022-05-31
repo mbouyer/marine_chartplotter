@@ -316,9 +316,7 @@ edisp_update_winddata(void)
 	vect2pol(&cog, &sog, &vog);
 	vect2pol(&heading, NULL, &vheading);
 
-	aws /= NAVG;
-	sog /= NAVG;
-
+	/* compute drift */
 	b_cog = (cog - heading);
 	if (b_cog > 180)
 		b_cog = b_cog - 360;
@@ -327,12 +325,14 @@ edisp_update_winddata(void)
 	lv_gauge_set_value(dir_value, GAUGE_N_COG, b_cog);
 
 	/* compute true wind vector */
+	pol2vect(b_cog, sog, &vog);
 	vtw.x = vaw.x - vog.x;
 	vtw.y = vaw.y - vog.y;
 
 	/* final values */
 	vect2pol(&twa, &tws, &vtw);
 	tws /= NAVG;
+	sog /= NAVG;
 
 	if (tws > 10) {
 		/* now compute VMG */
